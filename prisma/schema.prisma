@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int    @id @default(autoincrement())
+  customer_id       Int
+  username          String @unique @db.VarChar(255)
+  password          String @db.VarChar(255)
+  isActive          Int
+  passwordRequest   String @db.VarChar(255)
+  ispasswordRequest Int
+
+  @@map("users")
+}
+
+model Category {
+  id          Int         @id @default(autoincrement())
+  customer_id Int
+  name        String      @db.VarChar(255)
+  items       Item[]
+  histories   History[]
+  inventories Inventory[]
+
+  @@unique([customer_id, name], name: "unique_category_per_customer")
+  @@map("category")
+}
+
+model Location {
+  id          Int         @id @default(autoincrement())
+  customer_id Int
+  name        String      @db.VarChar(255)
+  histories   History[]
+  inventories Inventory[]
+
+  @@unique([customer_id, name], name: "unique_location_per_customer")
+  @@map("location")
+}
+
+model Status {
+  id          Int         @id @default(autoincrement())
+  customer_id Int
+  status      String      @db.VarChar(255)
+  histories   History[]
+  inventories Inventory[]
+
+  @@unique([customer_id, status], name: "unique_status_per_customer")
+  @@map("status")
+}
+
+model Item {
+  id          Int         @id @default(autoincrement())
+  customer_id Int
+  category_id Int
+  name        String      @db.VarChar(255)
+  tag         String      @db.VarChar(255)
+  category    Category    @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  histories   History[]
+  inventories Inventory[]
+
+  @@unique([customer_id, tag], name: "unique_tag_per_customer")
+  @@index([category_id], map: "category_id")
+  @@map("item")
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement())
+  customer_id Int
+  category_id Int
+  item_id     Int
+  location_id Int
+  status_id   Int
+  category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  item        Item     @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  location    Location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  status      Status   @relation(fields: [status_id], references: [id], onDelete: Cascade)
+
+  @@index([category_id, item_id, location_id, status_id], map: "customer_id")
+  @@map("inventory")
+}
+
+model History {
+  id          Int      @id @default(autoincrement())
+  customer_id Int
+  category_id Int
+  item_id     Int
+  location_id Int
+  status_id   Int
+  date        String   @db.VarChar(255)
+  category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  item        Item     @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  location    Location @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  status      Status   @relation(fields: [status_id], references: [id], onDelete: Cascade)
+
+  @@index([category_id, item_id, location_id, status_id], map: "customer_id")
+  @@map("history")
+}
+
+model ApiKey {
+  id          Int    @id @default(autoincrement())
+  customer_id Int
+  api_key     String @db.VarChar(255)
+  created_at  String @db.VarChar(255)
+
+  @@map("apikey")
+}
