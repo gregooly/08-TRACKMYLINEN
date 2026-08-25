@@ -48,8 +48,12 @@ const menuItems = [
     path: '/admin/users',
     icon: '/svg/users.svg',
   },
-  
-
+  {
+    id: 'app-users',
+    label: 'App Users',
+    path: '/admin/app-users',
+    icon: '/svg/user_check.svg',
+  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

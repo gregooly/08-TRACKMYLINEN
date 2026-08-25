@@ -385,17 +385,6 @@ function HomeContent() {
                     {isLogin ? 'Register' : 'Sign in here'}
                   </button>
                 </p>
-                {isLogin && (
-                  <p className="text-gray-600 text-sm mt-2">
-                    Register an app device?{' '}
-                    <a
-                      href="/app-register"
-                      className="text-gray-700 hover:text-black font-medium"
-                    >
-                      App registration
-                    </a>
-                  </p>
-                )}
               </div>
             </div>
           </div>

@@ -13,9 +13,16 @@ export type TenantAuth =
 export async function resolveTenant(
   request?: NextRequest
 ): Promise<TenantAuth> {
-  // Prefer JWT cookie (web admin/agent/app session)
   const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  let token = cookieStore.get('token')?.value;
+
+  // Also accept Authorization Bearer (same as some admin pages)
+  if (!token && request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    }
+  }
 
   if (token) {
     const decoded = verifyToken(token);

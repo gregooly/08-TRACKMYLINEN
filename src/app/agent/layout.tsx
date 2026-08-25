@@ -30,19 +30,12 @@ const menuItems = [
     path: '/agent/history',
     icon: '/svg/history.svg',
   },
-//   {
-//     id: 'users',
-//     label: 'Users',
-//     path: '/agent/users',
-//     icon: '/svg/users.svg',
-//   },
-  // Add more menu items here in the future
-  // {
-  //   id: 'settings',
-  //   label: 'Settings',
-  //   path: '/agent/settings',
-  //   icon: '/svg/settings.svg',
-  // },
+  {
+    id: 'app-users',
+    label: 'App Users',
+    path: '/agent/app-users',
+    icon: '/svg/user_check.svg',
+  },
 ];
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
