@@ -12,6 +12,18 @@ interface AppUser {
   created_at: string;
 }
 
+/** Format 16-char machine id as XXXX-XXXX-XXXX-XXXX */
+function formatMachineNumber(raw: string): string {
+  const cleaned = raw.replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+  const parts = cleaned.match(/.{1,4}/g);
+  return parts ? parts.join('-') : '';
+}
+
+/** Strip hyphens / non-alnum for API/DB (16 chars) */
+function rawMachineNumber(formatted: string): string {
+  return formatted.replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+}
+
 export default function AppUsersManagementPage() {
   const { showToast } = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -56,7 +68,8 @@ export default function AppUsersManagementPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'machineNumber' ? value.slice(0, 16) : value,
+      [name]:
+        name === 'machineNumber' ? formatMachineNumber(value) : value,
     }));
   };
 
@@ -68,7 +81,9 @@ export default function AppUsersManagementPage() {
       return;
     }
 
-    if (formData.machineNumber.length !== 16) {
+    const machineRaw = rawMachineNumber(formData.machineNumber);
+
+    if (machineRaw.length !== 16) {
       showToast(
         'error',
         'Invalid Machine Number',
@@ -77,7 +92,7 @@ export default function AppUsersManagementPage() {
       return;
     }
 
-    if (!/^[A-Za-z0-9]{16}$/.test(formData.machineNumber)) {
+    if (!/^[A-Za-z0-9]{16}$/.test(machineRaw)) {
       showToast(
         'error',
         'Invalid Machine Number',
@@ -94,7 +109,7 @@ export default function AppUsersManagementPage() {
         credentials: 'include',
         body: JSON.stringify({
           username: formData.username.trim(),
-          machineNumber: formData.machineNumber,
+          machineNumber: machineRaw,
         }),
       });
 
@@ -141,11 +156,15 @@ export default function AppUsersManagementPage() {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.machine_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter((user) => {
+    const q = searchTerm.toLowerCase();
+    const qRaw = q.replace(/[^a-z0-9]/g, '');
+    return (
+      user.username.toLowerCase().includes(q) ||
+      user.machine_number.toLowerCase().includes(qRaw) ||
+      formatMachineNumber(user.machine_number).toLowerCase().includes(q)
+    );
+  });
 
   if (loading) {
     return (
@@ -228,9 +247,9 @@ export default function AppUsersManagementPage() {
               value={formData.machineNumber}
               onChange={handleChange}
               required
-              maxLength={16}
+              maxLength={19}
               className="w-full h-10 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-green-500 font-mono tracking-wider"
-              placeholder="XXXXXXXXXXXXXXXX"
+              placeholder="0000-0000-0000-0000"
             />
           </div>
           <div className="w-full lg:w-auto lg:flex-shrink-0">
@@ -244,7 +263,8 @@ export default function AppUsersManagementPage() {
           </div>
         </form>
         <p className="text-xs text-gray-500 mt-2">
-          Machine number: {formData.machineNumber.length}/16 — letters and digits only
+          Format: 0000-0000-0000-0000 (
+          {rawMachineNumber(formData.machineNumber).length}/16 characters)
         </p>
       </div>
 
@@ -309,7 +329,7 @@ export default function AppUsersManagementPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-700">
-                      {user.machine_number}
+                      {formatMachineNumber(user.machine_number)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                       {user.customer_id}
@@ -363,7 +383,9 @@ export default function AppUsersManagementPage() {
                 </div>
                 <div className="mb-1 text-xs text-gray-600">
                   Machine:{' '}
-                  <span className="font-mono text-gray-900">{user.machine_number}</span>
+                  <span className="font-mono text-gray-900">
+                    {formatMachineNumber(user.machine_number)}
+                  </span>
                 </div>
                 <div className="mb-3 text-xs text-gray-600">
                   Customer ID: <span className="text-gray-900">{user.customer_id}</span>
@@ -396,7 +418,7 @@ export default function AppUsersManagementPage() {
         title="Delete App User"
         message={
           userToDelete
-            ? `Are you sure you want to delete app user "${userToDelete.username}" (${userToDelete.machine_number})?`
+            ? `Are you sure you want to delete app user "${userToDelete.username}" (${formatMachineNumber(userToDelete.machine_number)})?`
             : 'Are you sure you want to delete this app user?'
         }
         confirmLabel="Delete"

@@ -7,7 +7,12 @@ const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   machineNumber: z
     .string()
-    .length(16, 'Machine number must be exactly 16 characters'),
+    .transform((val) => val.replace(/[^A-Za-z0-9]/g, ''))
+    .pipe(
+      z
+        .string()
+        .length(16, 'Machine number must be exactly 16 characters')
+    ),
 });
 
 const isProduction = process.env.NODE_ENV === 'production';

@@ -7,8 +7,13 @@ const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(255),
   machineNumber: z
     .string()
-    .length(16, 'Machine number must be exactly 16 characters')
-    .regex(/^[A-Za-z0-9]{16}$/, 'Machine number must be 16 letters or digits'),
+    .transform((val) => val.replace(/[^A-Za-z0-9]/g, ''))
+    .pipe(
+      z
+        .string()
+        .length(16, 'Machine number must be exactly 16 letters or digits')
+        .regex(/^[A-Za-z0-9]{16}$/, 'Machine number must be 16 letters or digits')
+    ),
 });
 
 /**
