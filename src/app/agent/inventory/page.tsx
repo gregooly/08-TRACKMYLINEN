@@ -91,6 +91,7 @@ export default function InventoryPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [inventoryToDelete, setInventoryToDelete] = useState<number | null>(null);
   const [selectedInventoryIds, setSelectedInventoryIds] = useState<number[]>([]);
+  const [highlightedInventoryId, setHighlightedInventoryId] = useState<number | null>(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
 
@@ -121,7 +122,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     filterInventoriesBySelections();
-  }, [inventories, selectedItemId, selectedLocationId, selectedStatusId]);
+  }, [inventories, filteredItems]);
 
   // Sync filtered arrays for dropdowns
   useEffect(() => {
@@ -235,49 +236,22 @@ export default function InventoryPage() {
 
   const filterInventoriesByItems = (itemsToFilter: Item[]) => {
     const filteredItemIds = itemsToFilter.map(item => item.id);
-    let filteredInv = inventories.filter(inv => 
+    const filteredInv = inventories.filter(inv =>
       filteredItemIds.includes(inv.item_id)
     );
-    
-    // Apply additional filters based on dropdown selections
-    if (selectedLocationId) {
-      filteredInv = filteredInv.filter(inv => inv.location_id === selectedLocationId);
-    }
-    if (selectedStatusId) {
-      filteredInv = filteredInv.filter(inv => inv.status_id === selectedStatusId);
-    }
-    
     setFilteredInventories(filteredInv);
   };
 
+  // Keep all registered rows visible; only sync with left-panel item search
   const filterInventoriesBySelections = () => {
+    const filteredItemIds = filteredItems.map(item => item.id);
     let filteredInv = inventories;
-    
-    // If a specific item is selected in left panel, show only that item's inventory
-    if (selectedItemId) {
-      filteredInv = filteredInv.filter(inv => inv.item_id === selectedItemId);
-    } else {
-      // Otherwise, filter by items displayed in left panel
-      const filteredItemIds = filteredItems.map(item => item.id);
-      if (filteredItemIds.length > 0) {
-        filteredInv = filteredInv.filter(inv => 
-          filteredItemIds.includes(inv.item_id)
-        );
-      }
+    if (filteredItemIds.length > 0) {
+      filteredInv = inventories.filter(inv =>
+        filteredItemIds.includes(inv.item_id)
+      );
     }
-    
-    // Filter by selected location
-    if (selectedLocationId) {
-      filteredInv = filteredInv.filter(inv => inv.location_id === selectedLocationId);
-    }
-    
-    // Filter by selected status
-    if (selectedStatusId) {
-      filteredInv = filteredInv.filter(inv => inv.status_id === selectedStatusId);
-    }
-    
     setFilteredInventories(filteredInv);
-    // Reset to first page when filters change
     setInventoryCurrentPage(1);
   };
 
@@ -426,6 +400,7 @@ export default function InventoryPage() {
           setSelectedItemId(null);
           setSelectedLocationId(null);
           setSelectedStatusId(null);
+          setHighlightedInventoryId(null);
         }, 100);
       } else {
         const error = await response.json();
@@ -467,6 +442,7 @@ export default function InventoryPage() {
   };
 
   const handleRowClick = (inventory: InventoryRecord) => {
+    setHighlightedInventoryId(inventory.id);
     setSelectedItemId(inventory.item_id);
     setSelectedLocationId(inventory.location_id);
     setSelectedStatusId(inventory.status_id);
@@ -1088,12 +1064,15 @@ export default function InventoryPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {getPaginatedInventories().map((inventory) => {
                         const isChecked = selectedInventoryIds.includes(inventory.id);
+                        const isHighlighted = highlightedInventoryId === inventory.id;
                         return (
                         <tr 
                           key={inventory.id} 
                           onClick={() => handleRowClick(inventory)}
                           className={`transition-colors cursor-pointer ${
-                            isChecked ? 'bg-blue-100 hover:bg-blue-100' : 'hover:bg-gray-50'
+                            isChecked || isHighlighted
+                              ? 'bg-blue-100 hover:bg-blue-100'
+                              : 'hover:bg-gray-50'
                           }`}
                         >
                           <td
