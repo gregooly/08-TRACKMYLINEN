@@ -8,41 +8,36 @@ import { z } from 'zod';
  * Android app user login
  * POST /api/app/login
  *
- * Body:
+ * Body (machine number only — 16 chars, no hyphens required):
  * {
- *   "username": "string",
- *   "machineNumber": "0000-0000-0000-0000" // hyphens optional
+ *   "machineNumber": "0000000000000000"
  * }
  *
- * Success (200):
- * {
- *   "success": true,
- *   "message": "Login successful",
- *   "token": "<jwt>",
- *   "user": {
- *     "id": number,
- *     "customerId": number,
- *     "username": string,
- *     "machineNumber": "XXXX-XXXX-XXXX-XXXX",
- *     "role": "app"
- *   }
- * }
+ * Also accepts "machine_number".
  *
- * Use header on later requests:
+ * Success (200): token + user (username returned for display)
+ *
+ * Later requests:
  *   Authorization: Bearer <token>
+ *   X-Customer-Id: <customerId>
  */
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  machineNumber: z.string().min(1, 'Machine number is required'),
-});
+const loginSchema = z
+  .object({
+    machineNumber: z.union([z.string(), z.number()]).optional(),
+    machine_number: z.union([z.string(), z.number()]).optional(),
+  })
+  .refine(
+    (data) => data.machineNumber != null || data.machine_number != null,
+    { message: 'machineNumber is required' }
+  );
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
-    const username = validated.username.trim();
-    const machineNumber = normalizeMachineNumber(validated.machineNumber);
+    const rawInput = validated.machineNumber ?? validated.machine_number;
+    const machineNumber = normalizeMachineNumber(String(rawInput ?? ''));
 
     if (machineNumber.length !== 16) {
       return NextResponse.json(
@@ -56,7 +51,6 @@ export async function POST(request: NextRequest) {
 
     const appUser = await prisma.appUser.findFirst({
       where: {
-        username,
         machine_number: machineNumber,
       },
     });
@@ -65,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid username or machine number.',
+          message: 'Invalid machine number.',
         },
         { status: 401 }
       );
