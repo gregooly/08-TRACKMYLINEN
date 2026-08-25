@@ -19,6 +19,19 @@ model User {
   @@map("users")
 }
 
+model AppUser {
+  id             Int    @id @default(autoincrement())
+  customer_id    Int
+  username       String @db.VarChar(255)
+  machine_number String @db.Char(16)
+  created_at     String @db.VarChar(255)
+
+  @@unique([machine_number], name: "unique_machine_number")
+  @@unique([customer_id, username], name: "unique_username_per_customer")
+  @@index([customer_id], map: "idx_app_user_customer_id")
+  @@map("app_user")
+}
+
 model Category {
   id          Int         @id @default(autoincrement())
   customer_id Int
@@ -48,6 +61,7 @@ model Status {
   status      String      @db.VarChar(255)
   histories   History[]
   inventories Inventory[]
+  packs       Pack[]
 
   @@unique([customer_id, status], name: "unique_status_per_customer")
   @@map("status")
@@ -62,6 +76,7 @@ model Item {
   category    Category    @relation(fields: [category_id], references: [id], onDelete: Cascade)
   histories   History[]
   inventories Inventory[]
+  packItems   PackItem[]
 
   @@unique([customer_id, tag], name: "unique_tag_per_customer")
   @@index([category_id], map: "category_id")
@@ -99,6 +114,35 @@ model History {
 
   @@index([category_id, item_id, location_id, status_id], map: "customer_id")
   @@map("history")
+}
+
+model Pack {
+  id          Int        @id @default(autoincrement())
+  customer_id Int
+  name        String     @db.VarChar(255)
+  status_id   Int?
+  created_at  String     @db.VarChar(255)
+  status      Status?    @relation(fields: [status_id], references: [id], onDelete: SetNull)
+  items       PackItem[]
+
+  @@unique([customer_id, name], name: "unique_pack_name_per_customer")
+  @@index([customer_id], map: "idx_pack_customer_id")
+  @@index([status_id], map: "idx_pack_status_id")
+  @@map("pack")
+}
+
+model PackItem {
+  id          Int    @id @default(autoincrement())
+  customer_id Int
+  pack_id     Int
+  item_id     Int    @unique
+  added_at    String @db.VarChar(255)
+  pack        Pack   @relation(fields: [pack_id], references: [id], onDelete: Cascade)
+  item        Item   @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@unique([pack_id, item_id], name: "unique_pack_item")
+  @@index([customer_id], map: "idx_pack_item_customer_id")
+  @@map("pack_item")
 }
 
 model ApiKey {

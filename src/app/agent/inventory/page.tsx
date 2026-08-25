@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import SendPackModal from '@/components/ui/SendPackModal';
 import { useNotification } from '@/hooks/useNotification';
 
 interface Category {
@@ -89,6 +90,9 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [inventoryToDelete, setInventoryToDelete] = useState<number | null>(null);
+  const [selectedInventoryIds, setSelectedInventoryIds] = useState<number[]>([]);
+  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
 
   // Pagination states for items (left panel)
   const [itemsCurrentPage, setItemsCurrentPage] = useState(1);
@@ -466,6 +470,76 @@ export default function InventoryPage() {
     setSelectedItemId(inventory.item_id);
     setSelectedLocationId(inventory.location_id);
     setSelectedStatusId(inventory.status_id);
+  };
+
+  const paginatedInventories = (() => {
+    const startIndex = (inventoryCurrentPage - 1) * inventoryPerPage;
+    return filteredInventories.slice(startIndex, startIndex + inventoryPerPage);
+  })();
+
+  const allPageSelected =
+    paginatedInventories.length > 0 &&
+    paginatedInventories.every((inv) => selectedInventoryIds.includes(inv.id));
+
+  const toggleSelectInventory = (id: number) => {
+    setSelectedInventoryIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllOnPage = () => {
+    if (allPageSelected) {
+      const pageIds = new Set(paginatedInventories.map((inv) => inv.id));
+      setSelectedInventoryIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedInventories.map((inv) => inv.id);
+      setSelectedInventoryIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleConfirmSend = async (locationId: number, statusId: number) => {
+    const itemIds = inventories
+      .filter((inv) => selectedInventoryIds.includes(inv.id))
+      .map((inv) => inv.item_id);
+
+    if (itemIds.length === 0) {
+      notification.warning('No Selection', 'Please select at least one inventory item.');
+      return;
+    }
+
+    setSendLoading(true);
+    try {
+      const response = await fetch('/api/packs/transmit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item_ids: itemIds,
+          location_id: locationId,
+          status_id: statusId,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send pack');
+      }
+
+      notification.success(
+        'Pack Sent',
+        `${data.moved_count || itemIds.length} item(s) moved successfully.`
+      );
+      setSelectedInventoryIds([]);
+      setSendModalOpen(false);
+      await fetchInventories();
+    } catch (error) {
+      console.error('Error sending pack:', error);
+      notification.error(
+        'Send Failed',
+        error instanceof Error ? error.message : 'Failed to send pack'
+      );
+    } finally {
+      setSendLoading(false);
+    }
   };
 
   return (
@@ -951,13 +1025,24 @@ export default function InventoryPage() {
 
           {/* Inventory List */}
           <div className="flex-1 min-h-0 flex flex-col">
-            <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0 gap-2">
               <h4 className="text-sm sm:text-md font-semibold text-gray-700">Registered Inventory</h4>
-              {!loading && filteredInventories.length > 0 && (
-                <span className="text-xs text-gray-500">
-                  Total: {filteredInventories.length} records
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedInventoryIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSendModalOpen(true)}
+                    className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Send ({selectedInventoryIds.length})
+                  </button>
+                )}
+                {!loading && filteredInventories.length > 0 && (
+                  <span className="text-xs text-gray-500">
+                    Total: {filteredInventories.length} records
+                  </span>
+                )}
+              </div>
             </div>
             {loading ? (
               <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
@@ -971,6 +1056,15 @@ export default function InventoryPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
+                        <th className="px-2 sm:px-3 py-2 sm:py-3 text-left border-b border-gray-300 w-10">
+                          <input
+                            type="checkbox"
+                            checked={allPageSelected}
+                            onChange={toggleSelectAllOnPage}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            title="Select all on this page"
+                          />
+                        </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
                           Tag
                         </th>
@@ -992,49 +1086,65 @@ export default function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {getPaginatedInventories().map((inventory) => (
-                      <tr 
-                        key={inventory.id} 
-                        onClick={() => handleRowClick(inventory)}
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
-                          {inventory.item.tag}
-                        </td>
-                        <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm font-medium text-gray-900">
-                          {inventory.item.name}
-                        </td>
-                        <td className="hidden md:table-cell px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
-                          {inventory.category.name}
-                        </td>
-                        <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
-                          {inventory.location.name}
-                        </td>
-                        <td className="hidden sm:table-cell px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
-                          {inventory.status.status}
-                        </td>
-                        <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-right text-[11px] sm:text-sm font-medium">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteInventory(inventory.id);
-                            }}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                            title="Delete"
+                      {getPaginatedInventories().map((inventory) => {
+                        const isChecked = selectedInventoryIds.includes(inventory.id);
+                        return (
+                        <tr 
+                          key={inventory.id} 
+                          onClick={() => handleRowClick(inventory)}
+                          className={`transition-colors cursor-pointer ${
+                            isChecked ? 'bg-blue-100 hover:bg-blue-100' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <td
+                            className="px-2 sm:px-3 py-1 sm:py-1.5 whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                              <line x1="10" y1="11" x2="10" y2="17"></line>
-                              <line x1="14" y1="11" x2="14" y2="17"></line>
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleSelectInventory(inventory.id)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          </td>
+                          <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
+                            {inventory.item.tag}
+                          </td>
+                          <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm font-medium text-gray-900">
+                            {inventory.item.name}
+                          </td>
+                          <td className="hidden md:table-cell px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
+                            {inventory.category.name}
+                          </td>
+                          <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
+                            {inventory.location.name}
+                          </td>
+                          <td className="hidden sm:table-cell px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-[11px] sm:text-sm text-gray-900">
+                            {inventory.status.status}
+                          </td>
+                          <td className="px-2 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap text-right text-[11px] sm:text-sm font-medium">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteInventory(inventory.id);
+                              }}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                              title="Delete"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
               {/* Inventory Pagination */}
               {totalInventoryPages > 1 && (
@@ -1092,6 +1202,18 @@ export default function InventoryPage() {
         onCancel={() => {
           setDeleteModalOpen(false);
           setInventoryToDelete(null);
+        }}
+      />
+
+      <SendPackModal
+        isOpen={sendModalOpen}
+        selectedCount={selectedInventoryIds.length}
+        locations={locations}
+        statuses={statuses}
+        loading={sendLoading}
+        onConfirm={handleConfirmSend}
+        onCancel={() => {
+          if (!sendLoading) setSendModalOpen(false);
         }}
       />
     </div>

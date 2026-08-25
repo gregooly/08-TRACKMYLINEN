@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
+import { checkInItem } from '@/lib/checkInItem';
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,10 @@ export async function POST(request: Request) {
     }
 
     const customer_id = decoded.customer_id || decoded.userId;
+    if (!customer_id) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { item_id, location_id, status_id } = body;
 
@@ -28,102 +33,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the item to retrieve category_id
-    const item = await prisma.item.findUnique({
-      where: { id: item_id },
-      select: { category_id: true, customer_id: true }
+    const membership = await prisma.packItem.findUnique({
+      where: { item_id },
+      include: { pack: { select: { id: true, name: true } } },
     });
 
-    if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    if (membership && membership.customer_id === customer_id) {
+      return NextResponse.json(
+        {
+          error: `This item is in pack "${membership.pack.name}". Transmit the pack or remove the item from the pack first.`,
+        },
+        { status: 409 }
+      );
     }
 
-    if (item.customer_id !== customer_id) {
-      return NextResponse.json({ error: 'Unauthorized access to this item' }, { status: 403 });
-    }
-
-    const category_id = item.category_id;
-
-    // Get current date/time for history
-    const now = new Date();
-    const dateString = now.toISOString();
-
-    // Check if inventory record already exists for this item
-    const existingInventory = await prisma.inventory.findFirst({
-      where: {
-        customer_id,
-        item_id
-      }
+    const result = await checkInItem({
+      customerId: customer_id,
+      itemId: item_id,
+      locationId: location_id,
+      statusId: status_id,
     });
 
-    if (existingInventory) {
-      // Update existing inventory record
-      const updatedInventory = await prisma.inventory.update({
-        where: { id: existingInventory.id },
-        data: {
-          category_id,
-          location_id,
-          status_id
-        }
-      });
-
-      // Create new history record
-      await prisma.history.create({
-        data: {
-          customer_id,
-          category_id,
-          item_id,
-          location_id,
-          status_id,
-          date: dateString
-        }
-      });
-
-      return NextResponse.json({
-        message: 'Inventory updated successfully',
-        inventory: updatedInventory,
-        isUpdate: true
-      });
-    } else {
-      // Create new inventory record
-      const newInventory = await prisma.inventory.create({
-        data: {
-          customer_id,
-          category_id,
-          item_id,
-          location_id,
-          status_id
-        }
-      });
-
-      // Create new history record
-      await prisma.history.create({
-        data: {
-          customer_id,
-          category_id,
-          item_id,
-          location_id,
-          status_id,
-          date: dateString
-        }
-      });
-
-      return NextResponse.json({
-        message: 'Inventory registered successfully',
-        inventory: newInventory,
-        isUpdate: false
-      });
-    }
+    return NextResponse.json({
+      message: result.isUpdate
+        ? 'Inventory updated successfully'
+        : 'Inventory registered successfully',
+      inventory: result.inventory,
+      isUpdate: result.isUpdate,
+    });
   } catch (error) {
     console.error('Error registering inventory:', error);
-    return NextResponse.json(
-      { error: 'Failed to register inventory' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : 'Failed to register inventory';
+    const status = message.includes('Unauthorized')
+      ? 403
+      : message.includes('not found')
+        ? 404
+        : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
@@ -145,28 +96,28 @@ export async function GET(request: Request) {
         item: {
           select: {
             name: true,
-            tag: true
-          }
+            tag: true,
+          },
         },
         location: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         status: {
           select: {
-            status: true
-          }
+            status: true,
+          },
         },
         category: {
           select: {
-            name: true
-          }
-        }
+            name: true,
+          },
+        },
       },
       orderBy: {
-        id: 'desc'
-      }
+        id: 'desc',
+      },
     });
 
     return NextResponse.json(inventories);
@@ -198,14 +149,17 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Inventory ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Inventory ID is required' },
+        { status: 400 }
+      );
     }
 
     await prisma.inventory.deleteMany({
       where: {
         id: parseInt(id),
-        customer_id
-      }
+        customer_id,
+      },
     });
 
     return NextResponse.json({ message: 'Inventory deleted successfully' });

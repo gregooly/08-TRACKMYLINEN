@@ -131,6 +131,48 @@ CREATE TABLE `users` (
   `ispasswordRequest` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `app_user`
+--
+
+CREATE TABLE `app_user` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `machine_number` char(16) NOT NULL,
+  `created_at` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pack`
+--
+
+CREATE TABLE `pack` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `status_id` int(11) DEFAULT NULL,
+  `created_at` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pack_item`
+--
+
+CREATE TABLE `pack_item` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `pack_id` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `added_at` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -187,6 +229,33 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `app_user`
+--
+ALTER TABLE `app_user`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_machine_number` (`machine_number`),
+  ADD UNIQUE KEY `unique_username_per_customer` (`customer_id`,`username`),
+  ADD KEY `idx_app_user_customer_id` (`customer_id`);
+
+--
+-- Indexes for table `pack`
+--
+ALTER TABLE `pack`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_pack_name_per_customer` (`customer_id`,`name`),
+  ADD KEY `idx_pack_customer_id` (`customer_id`),
+  ADD KEY `idx_pack_status_id` (`status_id`);
+
+--
+-- Indexes for table `pack_item`
+--
+ALTER TABLE `pack_item`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_item_in_one_pack` (`item_id`),
+  ADD UNIQUE KEY `unique_pack_item` (`pack_id`,`item_id`),
+  ADD KEY `idx_pack_item_customer_id` (`customer_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -236,6 +305,24 @@ ALTER TABLE `status`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `app_user`
+--
+ALTER TABLE `app_user`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pack`
+--
+ALTER TABLE `pack`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pack_item`
+--
+ALTER TABLE `pack_item`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
