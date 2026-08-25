@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveAppRequest } from '@/lib/appAuth';
 
 /**
- * Android: pop / list items for the logged-in customer.
+ * Android: pop / list items and packs for the logged-in customer.
  *
  * POST or GET /api/app/popItems
  *
@@ -17,7 +17,17 @@ import { resolveAppRequest } from '@/lib/appAuth';
  * {
  *   "success": true,
  *   "count": number,
- *   "items": [ { "name": string, "tag": string }, ... ]
+ *   "packCount": number,
+ *   "items": [ { "name": string, "tag": string }, ... ],
+ *   "packs": [
+ *     {
+ *       "id": number,
+ *       "name": string,
+ *       "status": string | null,
+ *       "items": [ { "name": string, "tag": string }, ... ]
+ *     },
+ *     ...
+ *   ]
  * }
  */
 async function handlePopItems(request: NextRequest) {
@@ -30,24 +40,51 @@ async function handlePopItems(request: NextRequest) {
       );
     }
 
-    const items = await prisma.item.findMany({
-      where: { customer_id: auth.customerId },
-      select: {
-        name: true,
-        tag: true,
-      },
-      orderBy: { id: 'asc' },
-    });
+    const [items, rawPacks] = await Promise.all([
+      prisma.item.findMany({
+        where: { customer_id: auth.customerId },
+        select: {
+          name: true,
+          tag: true,
+        },
+        orderBy: { id: 'asc' },
+      }),
+      prisma.pack.findMany({
+        where: { customer_id: auth.customerId },
+        include: {
+          status: { select: { status: true } },
+          items: {
+            include: {
+              item: { select: { name: true, tag: true } },
+            },
+            orderBy: { id: 'asc' },
+          },
+        },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+
+    const packs = rawPacks.map((pack) => ({
+      id: pack.id,
+      name: pack.name,
+      status: pack.status?.status ?? null,
+      items: pack.items.map((packItem) => ({
+        name: packItem.item.name,
+        tag: packItem.item.tag,
+      })),
+    }));
 
     return NextResponse.json({
       success: true,
       count: items.length,
+      packCount: packs.length,
       items,
+      packs,
     });
   } catch (error) {
     console.error('popItems error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch items' },
+      { success: false, message: 'Failed to fetch items and packs' },
       { status: 500 }
     );
   }
