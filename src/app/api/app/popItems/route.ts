@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveAppRequest } from '@/lib/appAuth';
 
 /**
- * Android: pop / list items and packs for the logged-in customer.
+ * Android: pop / list items, packs, and locations for the logged-in customer.
  *
  * POST or GET /api/app/popItems
  *
@@ -18,6 +18,7 @@ import { resolveAppRequest } from '@/lib/appAuth';
  *   "success": true,
  *   "count": number,
  *   "packCount": number,
+ *   "locationCount": number,
  *   "items": [ { "name": string, "tag": string }, ... ],
  *   "packs": [
  *     {
@@ -27,7 +28,8 @@ import { resolveAppRequest } from '@/lib/appAuth';
  *       "items": [ { "name": string, "tag": string }, ... ]
  *     },
  *     ...
- *   ]
+ *   ],
+ *   "locations": [ { "id": number, "name": string }, ... ]
  * }
  */
 async function handlePopItems(request: NextRequest) {
@@ -40,7 +42,7 @@ async function handlePopItems(request: NextRequest) {
       );
     }
 
-    const [items, rawPacks] = await Promise.all([
+    const [items, rawPacks, locations] = await Promise.all([
       prisma.item.findMany({
         where: { customer_id: auth.customerId },
         select: {
@@ -62,6 +64,14 @@ async function handlePopItems(request: NextRequest) {
         },
         orderBy: { id: 'asc' },
       }),
+      prisma.location.findMany({
+        where: { customer_id: auth.customerId },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: { id: 'asc' },
+      }),
     ]);
 
     const packs = rawPacks.map((pack) => ({
@@ -78,13 +88,15 @@ async function handlePopItems(request: NextRequest) {
       success: true,
       count: items.length,
       packCount: packs.length,
+      locationCount: locations.length,
       items,
       packs,
+      locations,
     });
   } catch (error) {
     console.error('popItems error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch items and packs' },
+      { success: false, message: 'Failed to fetch items, packs, and locations' },
       { status: 500 }
     );
   }
