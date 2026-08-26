@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 01, 2025 at 06:13 AM
+-- Generation Time: Aug 24, 2026 at 01:48 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -37,6 +37,20 @@ CREATE TABLE `apikey` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `app_user`
+--
+
+CREATE TABLE `app_user` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `machine_number` char(20) NOT NULL,
+  `created_at` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `category`
 --
 
@@ -45,6 +59,13 @@ CREATE TABLE `category` (
   `customer_id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `category`
+--
+
+INSERT INTO `category` (`id`, `customer_id`, `name`) VALUES
+(1, 33, 'towel');
 
 -- --------------------------------------------------------
 
@@ -62,6 +83,15 @@ CREATE TABLE `history` (
   `date` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `history`
+--
+
+INSERT INTO `history` (`id`, `customer_id`, `category_id`, `item_id`, `location_id`, `status_id`, `date`) VALUES
+(1, 33, 1, 1, 1, 1, '2026-08-24T06:05:48.041Z'),
+(2, 33, 1, 1, 2, 1, '2026-08-24T06:07:03.545Z'),
+(3, 33, 1, 1, 1, 1, '2026-08-24T07:36:03.404Z');
+
 -- --------------------------------------------------------
 
 --
@@ -77,6 +107,13 @@ CREATE TABLE `inventory` (
   `status_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `inventory`
+--
+
+INSERT INTO `inventory` (`id`, `customer_id`, `category_id`, `item_id`, `location_id`, `status_id`) VALUES
+(1, 33, 1, 1, 1, 1);
+
 -- --------------------------------------------------------
 
 --
@@ -91,6 +128,13 @@ CREATE TABLE `item` (
   `tag` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `item`
+--
+
+INSERT INTO `item` (`id`, `customer_id`, `category_id`, `name`, `tag`) VALUES
+(1, 33, 1, 'aaa', '12312');
+
 -- --------------------------------------------------------
 
 --
@@ -103,47 +147,13 @@ CREATE TABLE `location` (
   `name` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
--- Table structure for table `status`
+-- Dumping data for table `location`
 --
 
-CREATE TABLE `status` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) NOT NULL,
-  `status` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) NOT NULL,
-  `username` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `isActive` int(11) NOT NULL,
-  `passwordRequest` varchar(255) NOT NULL,
-  `ispasswordRequest` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `app_user`
---
-
-CREATE TABLE `app_user` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) NOT NULL,
-  `username` varchar(255) NOT NULL,
-  `machine_number` char(16) NOT NULL,
-  `created_at` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO `location` (`id`, `customer_id`, `name`) VALUES
+(1, 33, '1 floor'),
+(2, 33, '2 floor');
 
 -- --------------------------------------------------------
 
@@ -173,6 +183,41 @@ CREATE TABLE `pack_item` (
   `added_at` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `status`
+--
+
+CREATE TABLE `status` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `status` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `status`
+--
+
+INSERT INTO `status` (`id`, `customer_id`, `status`) VALUES
+(1, 33, 'good');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `isActive` int(11) NOT NULL,
+  `passwordRequest` varchar(255) NOT NULL,
+  `ispasswordRequest` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -182,6 +227,15 @@ CREATE TABLE `pack_item` (
 --
 ALTER TABLE `apikey`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `app_user`
+--
+ALTER TABLE `app_user`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_machine_number` (`machine_number`),
+  ADD UNIQUE KEY `unique_username_per_customer` (`customer_id`,`username`),
+  ADD KEY `idx_app_user_customer_id` (`customer_id`);
 
 --
 -- Indexes for table `category`
@@ -217,27 +271,6 @@ ALTER TABLE `location`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `status`
---
-ALTER TABLE `status`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `app_user`
---
-ALTER TABLE `app_user`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_machine_number` (`machine_number`),
-  ADD UNIQUE KEY `unique_username_per_customer` (`customer_id`,`username`),
-  ADD KEY `idx_app_user_customer_id` (`customer_id`);
-
---
 -- Indexes for table `pack`
 --
 ALTER TABLE `pack`
@@ -256,6 +289,18 @@ ALTER TABLE `pack_item`
   ADD KEY `idx_pack_item_customer_id` (`customer_id`);
 
 --
+-- Indexes for table `status`
+--
+ALTER TABLE `status`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -266,52 +311,40 @@ ALTER TABLE `apikey`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `app_user`
+--
+ALTER TABLE `app_user`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `category`
 --
 ALTER TABLE `category`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `history`
 --
 ALTER TABLE `history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `item`
 --
 ALTER TABLE `item`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `location`
 --
 ALTER TABLE `location`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `status`
---
-ALTER TABLE `status`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `app_user`
---
-ALTER TABLE `app_user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `pack`
@@ -324,6 +357,35 @@ ALTER TABLE `pack`
 --
 ALTER TABLE `pack_item`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `status`
+--
+ALTER TABLE `status`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `pack`
+--
+ALTER TABLE `pack`
+  ADD CONSTRAINT `fk_pack_status` FOREIGN KEY (`status_id`) REFERENCES `status` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `pack_item`
+--
+ALTER TABLE `pack_item`
+  ADD CONSTRAINT `fk_pack_item_item` FOREIGN KEY (`item_id`) REFERENCES `item` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_pack_item_pack` FOREIGN KEY (`pack_id`) REFERENCES `pack` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
