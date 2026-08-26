@@ -19,13 +19,13 @@ import { resolveAppRequest } from '@/lib/appAuth';
  *   "count": number,
  *   "packCount": number,
  *   "locationCount": number,
- *   "items": [ { "name": string, "tag": string }, ... ],
+ *   "items": [ { "id": number, "name": string, "tag": string }, ... ],
  *   "packs": [
  *     {
  *       "id": number,
  *       "name": string,
  *       "status": string | null,
- *       "items": [ { "name": string, "tag": string }, ... ]
+ *       "items": [ { "id": number, "name": string, "tag": string }, ... ]
  *     },
  *     ...
  *   ],
@@ -46,6 +46,7 @@ async function handlePopItems(request: NextRequest) {
       prisma.item.findMany({
         where: { customer_id: auth.customerId },
         select: {
+          id: true,
           name: true,
           tag: true,
         },
@@ -57,7 +58,7 @@ async function handlePopItems(request: NextRequest) {
           status: { select: { status: true } },
           items: {
             include: {
-              item: { select: { name: true, tag: true } },
+              item: { select: { id: true, name: true, tag: true } },
             },
             orderBy: { id: 'asc' },
           },
@@ -79,6 +80,7 @@ async function handlePopItems(request: NextRequest) {
       name: pack.name,
       status: pack.status?.status ?? null,
       items: pack.items.map((packItem) => ({
+        id: packItem.item.id,
         name: packItem.item.name,
         tag: packItem.item.tag,
       })),
