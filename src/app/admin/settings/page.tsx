@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import LocationEditModal, {
+  type LocationEditTarget,
+} from '@/components/ui/LocationEditModal';
 import { useNotification } from '@/hooks/useNotification';
 
 interface Location {
@@ -78,6 +81,12 @@ export default function SettingsPage() {
     id: null,
     name: ''
   });
+
+  const [locationEditModal, setLocationEditModal] = useState<{
+    isOpen: boolean;
+    location: LocationEditTarget | null;
+  }>({ isOpen: false, location: null });
+  const [locationEditLoading, setLocationEditLoading] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -406,6 +415,51 @@ export default function SettingsPage() {
     });
   };
 
+  const handleEditLocation = (location: Location) => {
+    setLocationEditModal({
+      isOpen: true,
+      location: {
+        id: location.id,
+        name: location.name,
+        email: location.email,
+      },
+    });
+  };
+
+  const handleSaveLocationEdit = async (
+    id: number,
+    name: string,
+    email: string | null
+  ) => {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      notification.warning('Invalid Email', 'Please enter a valid email address or leave it empty.');
+      return;
+    }
+
+    setLocationEditLoading(true);
+    try {
+      const response = await fetch('/api/settings/location', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name, email }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setLocationEditModal({ isOpen: false, location: null });
+        await fetchLocations();
+        notification.success('Location Updated', 'The location has been updated successfully.');
+      } else {
+        notification.error('Error', data.error || 'Failed to update location');
+      }
+    } catch (error) {
+      console.error('Error updating location:', error);
+      notification.error('Network Error', 'Failed to update location. Please try again.');
+    } finally {
+      setLocationEditLoading(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteModal.id || !deleteModal.type) return;
 
@@ -516,8 +570,17 @@ export default function SettingsPage() {
                         <div className="text-xs text-gray-500 truncate">{location.email}</div>
                       ) : null}
                     </div>
-                    <div className="flex gap-1">
-                     
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => handleEditLocation(location)}
+                        className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
                       <button
                         onClick={() => handleDeleteLocation(location.id, location.name)}
                         className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -822,6 +885,14 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <LocationEditModal
+        isOpen={locationEditModal.isOpen}
+        location={locationEditModal.location}
+        onSave={handleSaveLocationEdit}
+        onCancel={() => setLocationEditModal({ isOpen: false, location: null })}
+        loading={locationEditLoading}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

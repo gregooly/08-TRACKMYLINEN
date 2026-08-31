@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import LocationEditModal, {
+  type LocationEditTarget,
+} from '@/components/ui/LocationEditModal';
 
 interface Location {
   id: number;
@@ -75,6 +78,12 @@ export default function SettingsPage() {
     id: null,
     name: ''
   });
+
+  const [locationEditModal, setLocationEditModal] = useState<{
+    isOpen: boolean;
+    location: LocationEditTarget | null;
+  }>({ isOpen: false, location: null });
+  const [locationEditLoading, setLocationEditLoading] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -354,6 +363,45 @@ export default function SettingsPage() {
     });
   };
 
+  const handleEditLocation = (location: Location) => {
+    setLocationEditModal({
+      isOpen: true,
+      location: {
+        id: location.id,
+        name: location.name,
+        email: location.email,
+      },
+    });
+  };
+
+  const handleSaveLocationEdit = async (
+    id: number,
+    name: string,
+    email: string | null
+  ) => {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return;
+    }
+
+    setLocationEditLoading(true);
+    try {
+      const response = await fetch('/api/settings/location', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name, email }),
+      });
+
+      if (response.ok) {
+        setLocationEditModal({ isOpen: false, location: null });
+        await fetchLocations();
+      }
+    } catch (error) {
+      console.error('Error updating location:', error);
+    } finally {
+      setLocationEditLoading(false);
+    }
+  };
+
   const handleDeleteCategory = (id: number, name: string) => {
     setDeleteModal({
       isOpen: true,
@@ -464,9 +512,9 @@ export default function SettingsPage() {
                         <div className="text-xs text-gray-500 truncate">{location.email}</div>
                       ) : null}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <button
-                        onClick={() => {/* TODO: Add edit functionality */}}
+                        onClick={() => handleEditLocation(location)}
                         className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit"
                       >
@@ -797,6 +845,14 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <LocationEditModal
+        isOpen={locationEditModal.isOpen}
+        location={locationEditModal.location}
+        onSave={handleSaveLocationEdit}
+        onCancel={() => setLocationEditModal({ isOpen: false, location: null })}
+        loading={locationEditLoading}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
