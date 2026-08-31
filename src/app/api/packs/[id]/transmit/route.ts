@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resolveTenant } from '@/lib/tenantAuth';
 import { checkInItem } from '@/lib/checkInItem';
+import { notifyPackSendByEmail } from '@/lib/packSendNotification';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -43,7 +44,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const pack = await prisma.pack.findFirst({
       where: { id: packId, customer_id: auth.customerId },
-      include: { items: true },
+      include: {
+        items: {
+          include: {
+            item: { select: { id: true, name: true, tag: true } },
+          },
+        },
+      },
     });
 
     if (!pack) {
@@ -58,6 +65,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     let statusId = statusIdRaw;
+    let statusName = '';
+
     if (statusId !== null) {
       if (Number.isNaN(statusId)) {
         return NextResponse.json({ error: 'Invalid status_id' }, { status: 400 });
@@ -68,8 +77,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (!status) {
         return NextResponse.json({ error: 'Invalid status_id' }, { status: 400 });
       }
+      statusName = status.status;
     } else if (pack.status_id) {
       statusId = pack.status_id;
+      const status = await prisma.status.findFirst({
+        where: { id: pack.status_id, customer_id: auth.customerId },
+      });
+      statusName = status?.status ?? '';
     }
 
     if (!statusId) {
@@ -81,6 +95,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const now = new Date().toISOString();
     const movedItemIds: number[] = [];
+    const movedItems = pack.items.map((packItem) => ({
+      name: packItem.item.name,
+      tag: packItem.item.tag,
+    }));
 
     for (const packItem of pack.items) {
       await checkInItem({
@@ -96,12 +114,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Destroy pack after transmit (cascade deletes pack_item)
     await prisma.pack.delete({ where: { id: packId } });
 
+    const emailResult = await notifyPackSendByEmail({
+      locationName: location.name,
+      locationEmail: location.email,
+      packName: pack.name,
+      statusName,
+      items: movedItems,
+      sentAt: now,
+    });
+
     return NextResponse.json({
       message: 'Pack transmitted and destroyed',
       moved_count: movedItemIds.length,
       item_ids: movedItemIds,
       location_id: locationId,
       status_id: statusId,
+      emailSent: emailResult.emailSent,
     });
   } catch (error) {
     console.error('Error transmitting pack:', error);

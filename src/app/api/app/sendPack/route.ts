@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resolveAppRequest } from '@/lib/appAuth';
 import { checkInItem } from '@/lib/checkInItem';
+import { notifyPackSendByEmail } from '@/lib/packSendNotification';
 
 /**
  * Android: send / transmit a virtual pack.
@@ -173,6 +174,15 @@ export async function POST(request: NextRequest) {
     // Destroy virtual pack after send (cascade deletes pack_item)
     await prisma.pack.delete({ where: { id: packId } });
 
+    const emailResult = await notifyPackSendByEmail({
+      locationName: location.name,
+      locationEmail: location.email,
+      packName: pack.name,
+      statusName: statusName ?? '',
+      items: movedItems,
+      sentAt: now,
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Pack sent and deleted',
@@ -182,6 +192,7 @@ export async function POST(request: NextRequest) {
       status: statusName,
       movedCount: movedItems.length,
       items: movedItems,
+      emailSent: emailResult.emailSent,
     });
   } catch (error) {
     console.error('sendPack error:', error);

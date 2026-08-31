@@ -144,7 +144,8 @@ INSERT INTO `item` (`id`, `customer_id`, `category_id`, `name`, `tag`) VALUES
 CREATE TABLE `location` (
   `id` int(11) NOT NULL,
   `customer_id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

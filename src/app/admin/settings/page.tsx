@@ -8,6 +8,7 @@ interface Location {
   id: number;
   customer_id: number;
   name: string;
+  email: string | null;
 }
 
 interface Category {
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   const notification = useNotification();
   
   const [locationInput, setLocationInput] = useState('');
+  const [locationEmailInput, setLocationEmailInput] = useState('');
   const [categoryInput, setCategoryInput] = useState('');
   const [statusInput, setStatusInput] = useState('');
   const [itemNameInput, setItemNameInput] = useState('');
@@ -255,17 +257,27 @@ export default function SettingsPage() {
         return;
       }
 
+      const email = locationEmailInput.trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        notification.warning('Invalid Email', 'Please enter a valid email address or leave it empty.');
+        return;
+      }
+
       try {
         const response = await fetch('/api/settings/location', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: locationInput.trim() })
+          body: JSON.stringify({
+            name: locationInput.trim(),
+            email: email || null,
+          })
         });
         
         const data = await response.json();
         
         if (response.ok) {
           setLocationInput('');
+          setLocationEmailInput('');
           await fetchLocations();
           notification.success('Location Added', 'The location has been added successfully.');
         } else {
@@ -477,6 +489,16 @@ export default function SettingsPage() {
               ADD
             </button>
           </div>
+          <div className="mb-3">
+            <input
+              type="email"
+              value={locationEmailInput}
+              onChange={(e) => setLocationEmailInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddLocation()}
+              placeholder="Enter email (optional)"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
+            />
+          </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
@@ -488,7 +510,12 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 {filteredLocations.map((location) => (
                   <div key={location.id} className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
-                    <span className="text-sm text-gray-700">{location.name}</span>
+                    <div className="min-w-0 flex-1 pr-2">
+                      <div className="text-sm text-gray-700 truncate">{location.name}</div>
+                      {location.email ? (
+                        <div className="text-xs text-gray-500 truncate">{location.email}</div>
+                      ) : null}
+                    </div>
                     <div className="flex gap-1">
                      
                       <button

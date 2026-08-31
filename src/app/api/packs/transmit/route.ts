@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resolveTenant } from '@/lib/tenantAuth';
 import { checkInItem } from '@/lib/checkInItem';
+import { notifyPackSendByEmail } from '@/lib/packSendNotification';
 
 /**
  * POST /api/packs/transmit
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
 
     const items = await prisma.item.findMany({
       where: { id: { in: itemIds }, customer_id: auth.customerId },
+      select: { id: true, name: true, tag: true },
     });
     if (items.length !== itemIds.length) {
       return NextResponse.json(
@@ -112,12 +114,22 @@ export async function POST(request: NextRequest) {
 
     await prisma.pack.delete({ where: { id: pack.id } });
 
+    const emailResult = await notifyPackSendByEmail({
+      locationName: location.name,
+      locationEmail: location.email,
+      packName,
+      statusName: status.status,
+      items: items.map((item) => ({ name: item.name, tag: item.tag })),
+      sentAt: now,
+    });
+
     return NextResponse.json({
       message: 'Items transmitted successfully',
       moved_count: itemIds.length,
       item_ids: itemIds,
       location_id: locationId,
       status_id: statusId,
+      emailSent: emailResult.emailSent,
     });
   } catch (error) {
     console.error('Error transmitting selection:', error);
