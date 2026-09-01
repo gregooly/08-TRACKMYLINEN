@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useNotification } from '@/hooks/useNotification';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ImportResult {
   success: boolean;
@@ -16,6 +17,7 @@ interface ImportResult {
 
 export default function ImportPage() {
   const notification = useNotification();
+  const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -43,7 +45,7 @@ export default function ImportPage() {
         setSelectedFile(file);
         setImportResult(null);
       } else {
-        notification.error('Invalid File Type', 'Please upload a CSV file.');
+        notification.error(t('import.invalidFileTitle'), t('import.invalidFileMessage'));
       }
     }
   };
@@ -55,14 +57,14 @@ export default function ImportPage() {
         setSelectedFile(file);
         setImportResult(null);
       } else {
-        notification.error('Invalid File Type', 'Please upload a CSV file.');
+        notification.error(t('import.invalidFileTitle'), t('import.invalidFileMessage'));
       }
     }
   };
 
   const handleImport = async () => {
     if (!selectedFile) {
-      notification.error('No File Selected', 'Please select a CSV file first.');
+      notification.error(t('import.noFileTitle'), t('import.noFileMessage'));
       return;
     }
 
@@ -82,19 +84,19 @@ export default function ImportPage() {
 
       if (response.ok) {
         setImportResult(result);
-        notification.success('Import Successful', result.message);
+        notification.success(t('import.successTitle'), result.message);
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
       } else {
-        notification.error('Import Failed', result.error || 'Import failed');
+        notification.error(t('import.failedTitle'), result.error || t('import.failedTitle'));
         setImportResult({ success: false, message: result.error || 'Import failed' });
       }
     } catch (error) {
       console.error('Import error:', error);
-      notification.error('Import Error', 'An error occurred during import');
-      setImportResult({ success: false, message: 'An error occurred during import' });
+      notification.error(t('import.errorTitle'), t('import.errorMessage'));
+      setImportResult({ success: false, message: t('import.errorMessage') });
     } finally {
       setImporting(false);
     }
@@ -132,8 +134,8 @@ Towel,Bath Towel,BT-001,Room 102,In Use`;
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Import CSV</h2>
-          <p className="text-sm text-gray-500 mt-1">Bulk import inventory data from CSV files</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('import.title')}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t('import.subtitle')}</p>
         </div>
         <button
           onClick={downloadTemplate}
@@ -142,7 +144,7 @@ Towel,Bath Towel,BT-001,Room 102,In Use`;
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Download Template
+          {t('import.downloadTemplate')}
         </button>
       </div>
 

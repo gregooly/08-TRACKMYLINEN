@@ -3,11 +3,14 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ui/ToastProvider';
+import LanguageToggle from '@/components/ui/LanguageToggle';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'agent'>('agent');
   const [formData, setFormData] = useState({
@@ -37,7 +40,7 @@ function HomeContent() {
     if (hasShownError) return;
 
     if (searchParams.get('registered') === 'true') {
-      showToast('success', 'Account Created!', 'Your account has been created successfully! Please sign in.');
+      showToast('success', t('auth.toastAccountCreatedTitle'), t('auth.toastAccountCreatedMessage'));
       setIsLogin(true);
       setHasShownError(true);
       // Clear the URL parameter
@@ -49,11 +52,11 @@ function HomeContent() {
     const errorParam = searchParams.get('error');
     if (errorParam) {
       if (errorParam === 'unauthorized') {
-        showToast('warning', 'Authentication Required', 'You must be logged in to access that page.');
+        showToast('warning', t('auth.toastUnauthorizedTitle'), t('auth.toastUnauthorizedMessage'));
       } else if (errorParam === 'forbidden') {
-        showToast('error', 'Access Denied', 'You do not have permission to access that page.');
+        showToast('error', t('auth.toastForbiddenTitle'), t('auth.toastForbiddenMessage'));
       } else if (errorParam === 'invalid_token') {
-        showToast('warning', 'Session Expired', 'Your session has expired. Please sign in again.');
+        showToast('warning', t('auth.toastSessionExpiredTitle'), t('auth.toastSessionExpiredMessage'));
       }
       setHasShownError(true);
       // Clear the URL parameter
@@ -100,7 +103,7 @@ function HomeContent() {
         localStorage.setItem('userRole', userRole);
         
         // Show success toast
-        showToast('success', 'Welcome Back!', `Successfully signed in as ${userRole}.`);
+        showToast('success', t('auth.toastWelcomeTitle'), t('auth.toastWelcomeMessage', { role: userRole === 'admin' ? t('common.admin') : t('common.agent') }));
 
         // Redirect based on role
         const redirectPath = userRole === 'admin' ? '/admin' : '/agent';
@@ -125,7 +128,7 @@ function HomeContent() {
         throw new Error('No token received');
       }
     } catch (err: any) {
-      showToast('error', 'Sign In Failed', err.message || 'Something went wrong. Please try again.');
+      showToast('error', t('auth.toastSignInFailedTitle'), err.message || t('auth.toastSignInFailedMessage'));
     } finally {
       setSubmitLoading(false);
     }
@@ -136,14 +139,14 @@ function HomeContent() {
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      showToast('error', 'Password Mismatch', 'Passwords do not match. Please try again.');
+      showToast('error', t('auth.toastPasswordMismatchTitle'), t('auth.toastPasswordMismatchMessage'));
       return;
     }
 
     // Validate password strength
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(formData.password)) {
-      showToast('error', 'Weak Password', 'Password must be at least 8 characters with uppercase, lowercase, and number.');
+      showToast('error', t('auth.toastWeakPasswordTitle'), t('auth.toastWeakPasswordMessage'));
       return;
     }
 
@@ -170,7 +173,7 @@ function HomeContent() {
       }
 
       if (data.success) {
-        showToast('success', 'Registration Successful!', 'Account pending approval. Please sign in.');
+        showToast('success', t('auth.toastRegistrationSuccessTitle'), t('auth.toastRegistrationSuccessMessage'));
         setIsLogin(true);
         // Clear form
         setFormData({
@@ -184,14 +187,17 @@ function HomeContent() {
       }
     } catch (err: any) {
       console.error('Registration error:', err);
-      showToast('error', 'Registration Failed', err.message || 'Failed to register. Please try again.');
+      showToast('error', t('auth.toastRegistrationFailedTitle'), err.message || t('auth.toastRegistrationFailedMessage'));
     } finally {
       setSubmitLoading(false);
     }
   };
 
   return (
-     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#b1bcd4' }}>
+     <div className="min-h-screen flex items-center justify-center p-4 relative" style={{ backgroundColor: '#b1bcd4' }}>
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageToggle />
+      </div>
       {/* Responsive Login Card */}
       <div className="bg-white rounded-lg shadow-2xl overflow-hidden w-full max-w-6xl mx-auto">
         <div className="flex flex-col xl:flex-row min-h-[500px] xl:min-h-[600px]">
@@ -200,7 +206,7 @@ function HomeContent() {
             <div className="w-full h-full flex items-center justify-center">
               <img 
                 src="/trackmylinen-logo.png" 
-                alt="trackmylinen Logo" 
+                alt={t('common.logoAlt')} 
                 className="w-full max-w-xs xl:max-w-full h-auto xl:max-h-full object-contain"
               />
             </div>
@@ -211,7 +217,7 @@ function HomeContent() {
             <div className="max-w-md mx-auto w-full">
               <div className="text-center mb-4 xl:mb-6 relative">
                 <h1 className="text-lg sm:text-xl xl:text-2xl font-semibold text-gray-800 mb-2">
-                  {isLogin ? 'Sign in to Your Account' : 'Create Your Account'}
+                  {isLogin ? t('auth.signInTitle') : t('auth.createAccountTitle')}
                 </h1>
                 
                 {/* Admin/Delegate Toggle Button - Only on Sign In */}
@@ -227,7 +233,7 @@ function HomeContent() {
                               : 'bg-transparent text-gray-600 hover:text-gray-900'
                           }`}
                         >
-                          Admin
+                          {t('auth.roleAdmin')}
                         </button>
                         <button
                           onClick={() => setUserRole('agent')}
@@ -237,13 +243,13 @@ function HomeContent() {
                               : 'bg-transparent text-gray-600 hover:text-gray-900'
                           }`}
                         >
-                          Agent
+                          {t('auth.roleAgent')}
                         </button>
                       </div>
                     </div>
                     {userRole === 'admin' && (
                       <p className="text-xs text-gray-600 ">
-                        You must sign up with a pulsepoint account.
+                        {t('auth.pulsepointHint')}
                       </p>
                     )}
                   </div>
@@ -255,7 +261,7 @@ function HomeContent() {
                 <div className="space-y-4 xl:space-y-2">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      {userRole === 'admin' ? 'Manager Email' : 'Username'}
+                      {userRole === 'admin' ? t('auth.managerEmail') : t('auth.username')}
                     </label>
                     <input
                       type="email"
@@ -265,13 +271,13 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full text-sm px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                      placeholder={userRole === 'admin' ? 'Enter your manager email' : 'Enter your username'}
+                      placeholder={userRole === 'admin' ? t('auth.placeholderManagerEmail') : t('auth.placeholderUsername')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                      Password
+                      {t('auth.password')}
                     </label>
                     <input
                       type="password"
@@ -281,7 +287,7 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full text-sm px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                      placeholder="Enter your password"
+                      placeholder={t('auth.placeholderPassword')}
                     />
                   </div>
                   <div className='pt-8'>
@@ -290,7 +296,7 @@ function HomeContent() {
                           disabled={submitLoading}
                           className="w-full  bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg hover:bg-black focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                          {submitLoading ? 'Signing In...' : 'Sign In'}
+                          {submitLoading ? t('auth.signingIn') : t('auth.signIn')}
                         </button>
                   </div>
                  
@@ -300,7 +306,7 @@ function HomeContent() {
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Manager Email *
+                      {t('auth.managerEmailRequired')}
                     </label>
                     <input
                       type="email"
@@ -310,13 +316,13 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors text-sm"
-                      placeholder="Email address"
+                      placeholder={t('auth.placeholderEmail')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                      Username *
+                      {t('auth.usernameRequired')}
                     </label>
                     <input
                       type="text"
@@ -326,13 +332,13 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors text-sm"
-                      placeholder="Username"
+                      placeholder={t('auth.placeholderUsernameShort')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                      Password *
+                      {t('auth.passwordRequired')}
                     </label>
                     <input
                       type="password"
@@ -342,16 +348,16 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors text-sm"
-                      placeholder="Password"
+                      placeholder={t('auth.placeholderPasswordShort')}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Min 8 characters with uppercase, lowercase, and number
+                      {t('auth.passwordHint')}
                     </p>
                   </div>
 
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password *
+                      {t('auth.confirmPasswordRequired')}
                     </label>
                     <input
                       type="password"
@@ -361,7 +367,7 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors text-sm"
-                      placeholder="Confirm password"
+                      placeholder={t('auth.placeholderConfirmPassword')}
                     />
                   </div>
 
@@ -370,19 +376,19 @@ function HomeContent() {
                     disabled={submitLoading}
                     className="w-full bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg hover:bg-black focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    {submitLoading ? 'Creating Account...' : 'Create Account'}
+                    {submitLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
                   </button>
                 </div>
               )}
 
               <div className="mt-1 ">
                 <p className="text-gray-600 text-sm">
-                  {isLogin ? "Don't have an account? " : "Already have an account? "}
+                  {isLogin ? t('auth.noAccount') + ' ' : t('auth.hasAccount') + ' '}
                   <button 
                     onClick={() => setIsLogin(!isLogin)}
                     className="text-gray-700 hover:text-black font-medium"
                   >
-                    {isLogin ? 'Register' : 'Sign in here'}
+                    {isLogin ? t('auth.register') : t('auth.signInHere')}
                   </button>
                 </p>
               </div>

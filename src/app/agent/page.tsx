@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Helper function to decode JWT token
 function decodeToken(token: string) {
@@ -59,8 +60,9 @@ interface AtRiskItem {
   daysSinceLastCheck: number;
 }
 
-export default function AdminPage() {
+export default function AgentPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [adminId, setAdminId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,7 @@ export default function AdminPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold ">
-            Dashboard
+            {t('dashboard.title')}
           </h2>
          
         </div>
@@ -142,7 +144,7 @@ export default function AdminPage() {
           <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          <span className="hidden sm:inline">Refresh</span>
+          <span className="hidden sm:inline">{t('common.refresh')}</span>
         </button>
       </div>
 
@@ -154,7 +156,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-blue-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-blue-200 rounded-full animate-pulse"></span>
-              Total Inventory
+              {t('dashboard.totalInventory')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.inventoryCount || 0}</p>
           </div>
@@ -166,7 +168,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-green-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-green-200 rounded-full animate-pulse"></span>
-              Total Items
+              {t('dashboard.totalItems')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.totalItems || 0}</p>
           </div>
@@ -178,7 +180,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-purple-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-purple-200 rounded-full animate-pulse"></span>
-              Categories
+              {t('dashboard.categories')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.totalCategories || 0}</p>
           </div>
@@ -190,7 +192,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-orange-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-orange-200 rounded-full animate-pulse"></span>
-              History Records
+              {t('dashboard.historyRecords')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.historyCount || 0}</p>
           </div>
@@ -202,7 +204,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-teal-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-teal-200 rounded-full animate-pulse"></span>
-              Locations
+              {t('dashboard.locations')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.totalLocations || 0}</p>
           </div>
@@ -214,7 +216,7 @@ export default function AdminPage() {
           <div className="relative z-10">
             <p className="text-pink-100 text-xs font-medium flex items-center gap-1.5 mb-2">
               <span className="w-1.5 h-1.5 bg-pink-200 rounded-full animate-pulse"></span>
-              Status Types
+              {t('dashboard.statusTypes')}
             </p>
             <p className="text-2xl font-extrabold tracking-tight">{stats?.totalStatuses || 0}</p>
           </div>
@@ -231,7 +233,7 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Stock by Status</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('dashboard.stockByStatus')}</h3>
           </div>
           {breakdown?.byStatus && breakdown.byStatus.length > 0 ? (
             <div className="flex flex-col items-center">
@@ -314,7 +316,7 @@ export default function AdminPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm font-medium">No data available</p>
+              <p className="text-gray-500 text-sm font-medium">{t('dashboard.noData')}</p>
             </div>
           )}
         </div>
@@ -327,7 +329,7 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Stock by Category</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('dashboard.stockByCategory')}</h3>
           </div>
           {breakdown?.byCategory && breakdown.byCategory.length > 0 ? (
             <div className="flex flex-col items-center">
@@ -410,7 +412,7 @@ export default function AdminPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm font-medium">No data available</p>
+              <p className="text-gray-500 text-sm font-medium">{t('dashboard.noData')}</p>
             </div>
           )}
         </div>
@@ -423,7 +425,7 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Stock Risk Assessment</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('dashboard.stockRiskAssessment')}</h3>
           </div>
           {breakdown?.byConfirmation && breakdown.byConfirmation.length > 0 && stats?.inventoryCount ? (
             <div className="flex flex-col items-center">
@@ -530,7 +532,7 @@ export default function AdminPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm font-medium">No data available</p>
+              <p className="text-gray-500 text-sm font-medium">{t('dashboard.noData')}</p>
             </div>
           )}
         </div>
@@ -545,7 +547,7 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Stock by Location</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('dashboard.stockByLocation')}</h3>
           </div>
           <div className="space-y-4">
             {breakdown?.byLocation && breakdown.byLocation.length > 0 ? (
@@ -574,7 +576,7 @@ export default function AdminPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <p className="text-gray-500 text-sm font-medium">No data available</p>
+                <p className="text-gray-500 text-sm font-medium">{t('dashboard.noData')}</p>
               </div>
             )}
           </div>
@@ -590,8 +592,8 @@ export default function AdminPage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">At-Risk Inventory</h3>
-              <p className="text-xs text-red-600">Items not checked in over 6 months (Count: {atRiskItems.length})</p>
+              <h3 className="text-lg font-bold text-gray-900">{t('dashboard.atRiskTitle')}</h3>
+              <p className="text-xs text-red-600">{t('dashboard.atRiskSubtitle', { count: atRiskItems.length })}</p>
             </div>
           </div>
         </div>
@@ -600,13 +602,13 @@ export default function AdminPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tag</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Last Check</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Days Ago</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.item')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.tag')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.category')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.location')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.lastCheck')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.daysAgo')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -645,12 +647,12 @@ export default function AdminPage() {
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {item.lastCheckDate ? new Date(item.lastCheckDate).toLocaleDateString() : 'Never'}
+                        {item.lastCheckDate ? new Date(item.lastCheckDate).toLocaleDateString() : t('dashboard.never')}
                       </div>
                     </td>
                     <td className="px-6 py-2 whitespace-nowrap">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                        {item.daysSinceLastCheck} days
+                        {t('dashboard.days', { count: item.daysSinceLastCheck })}
                       </span>
                     </td>
                   </tr>
@@ -664,8 +666,8 @@ export default function AdminPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <p className="text-green-600 font-semibold">No at-risk inventory</p>
-                        <p className="text-gray-400 text-sm mt-1">All items have been checked within the last 6 months</p>
+                        <p className="text-green-600 font-semibold">{t('dashboard.noAtRiskTitle')}</p>
+                        <p className="text-gray-400 text-sm mt-1">{t('dashboard.noAtRiskMessage')}</p>
                       </div>
                     </td>
                   </tr>
@@ -686,8 +688,8 @@ export default function AdminPage() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
-              <p className="text-xs text-gray-500">Latest inventory transactions</p>
+              <h3 className="text-lg font-bold text-gray-900">{t('dashboard.recentActivity')}</h3>
+              <p className="text-xs text-gray-500">{t('dashboard.recentActivitySubtitle')}</p>
             </div>
           </div>
         </div>
@@ -696,12 +698,12 @@ export default function AdminPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tag</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.item')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.tag')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.category')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.location')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{t('dashboard.date')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -755,8 +757,8 @@ export default function AdminPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                           </svg>
                         </div>
-                        <p className="text-gray-500 font-semibold">No recent activity</p>
-                        <p className="text-gray-400 text-sm mt-1">Activity will appear here once items are tracked</p>
+                        <p className="text-gray-500 font-semibold">{t('dashboard.noActivityTitle')}</p>
+                        <p className="text-gray-400 text-sm mt-1">{t('dashboard.noActivityMessage')}</p>
                       </div>
                     </td>
                   </tr>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface AppUser {
   id: number;
@@ -26,6 +27,7 @@ function rawMachineNumber(formatted: string): string {
 
 export default function AppUsersManagementPage() {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,7 +171,7 @@ export default function AppUsersManagementPage() {
   if (loading) {
     return (
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">App Users</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('appUsers.title')}</h2>
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center h-64">
           <div className="text-center">
             <img
@@ -187,7 +189,7 @@ export default function AppUsersManagementPage() {
   return (
     <div className="pb-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">App Users</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('appUsers.title')}</h2>
         <button
           type="button"
           onClick={fetchUsers}

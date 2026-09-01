@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Category {
   id: number;
@@ -55,6 +56,7 @@ interface HistoryRecord {
 }
 
 export default function HistoryPage() {
+  const { t } = useTranslation();
   const [historySearchInput, setHistorySearchInput] = useState('');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
@@ -334,7 +336,7 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">History</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">{t('history.title')}</h2>
       <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4">
         {/* First Panel - Item Panel - Full width on mobile, 1/4 on desktop */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 h-[300px] sm:h-[400px] lg:h-[calc(100vh-190px)] flex flex-col lg:col-span-1">

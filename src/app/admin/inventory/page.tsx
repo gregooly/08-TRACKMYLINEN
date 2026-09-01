@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SendPackModal from '@/components/ui/SendPackModal';
 import { useNotification } from '@/hooks/useNotification';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Category {
   id: number;
@@ -58,6 +59,7 @@ interface InventoryRecord {
 
 export default function InventoryPage() {
   const notification = useNotification();
+  const { t } = useTranslation();
   const [inventorySearchInput, setInventorySearchInput] = useState('');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
@@ -365,7 +367,7 @@ export default function InventoryPage() {
 
   const handleRegisterInventory = async () => {
     if (!selectedItemId || !selectedLocationId || !selectedStatusId) {
-      notification.warning('Incomplete Selection', 'Please select item, location, and status before registering.');
+      notification.warning(t('inventory.incompleteSelectionTitle'), t('inventory.incompleteSelection'));
       return;
     }
 
@@ -390,9 +392,9 @@ export default function InventoryPage() {
         
         // Then show notification and reset selections
         if (result.isUpdate) {
-          notification.success('Inventory Updated', 'Inventory updated successfully! History record has been created.');
+          notification.success(t('inventory.inventoryUpdatedTitle'), t('inventory.inventoryUpdatedMessage'));
         } else {
-          notification.success('Inventory Registered', 'Inventory registered successfully! History record has been created.');
+          notification.success(t('inventory.inventoryRegisteredTitle'), t('inventory.inventoryRegisteredMessage'));
         }
         
         // Reset selections after a brief delay to ensure notification is shown
@@ -404,11 +406,11 @@ export default function InventoryPage() {
         }, 100);
       } else {
         const error = await response.json();
-        notification.error('Registration Failed', `Failed to register inventory: ${error.error || 'Unknown error'}`);
+        notification.error(t('inventory.registrationFailedTitle'), t('inventory.registrationFailedMessage', { error: error.error || 'Unknown error' }));
       }
     } catch (error) {
       console.error('Error registering inventory:', error);
-      notification.error('Registration Failed', 'Failed to register inventory');
+      notification.error(t('inventory.registrationFailedTitle'), t('inventory.registrationFailedGeneric'));
     }
   };
 
@@ -426,15 +428,15 @@ export default function InventoryPage() {
       });
 
       if (response.ok) {
-        notification.success('Inventory Deleted', 'Inventory deleted successfully!');
+        notification.success(t('inventory.inventoryDeletedTitle'), t('inventory.inventoryDeletedMessage'));
         await fetchInventories();
       } else {
         const error = await response.json();
-        notification.error('Delete Failed', `Failed to delete inventory: ${error.error || 'Unknown error'}`);
+        notification.error(t('inventory.deleteFailedTitle'), t('inventory.deleteFailedMessage', { error: error.error || 'Unknown error' }));
       }
     } catch (error) {
       console.error('Error deleting inventory:', error);
-      notification.error('Delete Failed', 'Failed to delete inventory');
+      notification.error(t('inventory.deleteFailedTitle'), t('inventory.deleteFailedGeneric'));
     } finally {
       setDeleteModalOpen(false);
       setInventoryToDelete(null);
@@ -479,7 +481,7 @@ export default function InventoryPage() {
       .map((inv) => inv.item_id);
 
     if (itemIds.length === 0) {
-      notification.warning('No Selection', 'Please select at least one inventory item.');
+      notification.warning(t('inventory.noSelectionTitle'), t('inventory.noSelection'));
       return;
     }
 
@@ -501,8 +503,8 @@ export default function InventoryPage() {
       }
 
       notification.success(
-        'Pack Sent',
-        `${data.moved_count || itemIds.length} item(s) moved successfully.`
+        t('inventory.packSentTitle'),
+        t('inventory.packSent', { count: data.moved_count || itemIds.length })
       );
       setSelectedInventoryIds([]);
       setSendModalOpen(false);
@@ -510,8 +512,8 @@ export default function InventoryPage() {
     } catch (error) {
       console.error('Error sending pack:', error);
       notification.error(
-        'Send Failed',
-        error instanceof Error ? error.message : 'Failed to send pack'
+        t('inventory.sendFailedTitle'),
+        error instanceof Error ? error.message : t('inventory.sendFailed')
       );
     } finally {
       setSendLoading(false);
@@ -520,11 +522,11 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Inventory</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">{t('inventory.title')}</h2>
       <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4">
         {/* First Panel - Item Panel - Full width on mobile, 1/4 on desktop */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 h-[300px] sm:h-[400px] lg:h-[calc(100vh-190px)] flex flex-col lg:col-span-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Item</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{t('inventory.item')}</h3>
           
           {/* Search Input and Button */}
           <div className="mb-2 sm:mb-3 flex gap-2">
@@ -533,7 +535,7 @@ export default function InventoryPage() {
               value={inventorySearchInput}
               onChange={(e) => handleCategorySearchChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleInventorySearch()}
-              placeholder="Search by item name or tag..."
+              placeholder={t('inventory.searchItems')}
               className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
             />
             <button 
@@ -543,13 +545,13 @@ export default function InventoryPage() {
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="hidden sm:inline">Search</span>
+              <span className="hidden sm:inline">{t('common.search')}</span>
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto mb-2">
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : filteredItems.length === 0 ? (
               <div className="text-center text-gray-500 text-sm py-4">
                 {inventorySearchInput.trim() !== '' ? 'No matching items found' : 'No items yet'}
@@ -586,7 +588,7 @@ export default function InventoryPage() {
                           )}
                         </div>
                         <div className={`text-xs ${hasInventory ? 'text-gray-500' : 'text-red-600'}`}>
-                          Category: {item.category?.name || 'Unknown'} | Tag: {item.tag}
+                          {t('settings.categoryLabel', { category: item.category?.name || t('settings.unknown'), tag: item.tag })}
                         </div>
                       </div>
                     </div>
@@ -600,7 +602,7 @@ export default function InventoryPage() {
           {!loading && filteredItems.length > 0 && totalItemPages > 1 && (
             <div className="flex items-center justify-between pt-2 border-t border-gray-200">
               <div className="text-xs text-gray-600">
-                Page {itemsCurrentPage} of {totalItemPages}
+                {t('common.pageOf', { current: itemsCurrentPage, total: totalItemPages })}
               </div>
               <div className="flex gap-1">
                 <button
@@ -624,7 +626,7 @@ export default function InventoryPage() {
 
         {/* Second Panel - Inventories - Full width on mobile, 3/4 on desktop */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-h-[400px] lg:h-[calc(100vh-190px)] lg:col-span-3 flex flex-col">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3 border-b border-gray-200 pb-2">Inventories</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3 border-b border-gray-200 pb-2">{t('inventory.inventories')}</h3>
           
           {/* Registration Form */}
           <div className="mb-4 flex-shrink-0">
@@ -632,7 +634,7 @@ export default function InventoryPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Item Dropdown */}
               <div className="relative" ref={itemDropdownRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Item</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('inventory.item')}</label>
                 <button
                   type="button"
                   onClick={() => setIsItemDropdownOpen(!isItemDropdownOpen)}
@@ -640,8 +642,8 @@ export default function InventoryPage() {
                 >
                   <span className={selectedItemId ? 'text-gray-900' : 'text-gray-500'}>
                     {selectedItemId
-                      ? items.find(i => i.id === selectedItemId)?.name || 'Choose an item'
-                      : 'Choose an item'}
+                      ? items.find(i => i.id === selectedItemId)?.name || t('inventory.chooseItem')
+                      : t('inventory.chooseItem')}
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${isItemDropdownOpen ? 'transform rotate-180' : ''}`}
@@ -669,7 +671,7 @@ export default function InventoryPage() {
                           type="text"
                           value={itemSearchInput}
                           onChange={(e) => handleItemSearchChange(e.target.value)}
-                          placeholder="Search items..."
+                          placeholder={t('inventory.searchItemsDropdown')}
                           className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -685,7 +687,7 @@ export default function InventoryPage() {
                         }}
                         className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 text-gray-600 border-b border-gray-200 flex items-center justify-between"
                       >
-                        <span>Clear Selection</span>
+                        <span>{t('common.clearSelection')}</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -693,7 +695,7 @@ export default function InventoryPage() {
                     )}
                     <div className="max-h-60 overflow-y-auto">
                       {filteredItemsForDropdown.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">No items found</div>
+                        <div className="px-3 py-2 text-sm text-gray-500">{t('inventory.noItemsFound')}</div>
                       ) : (
                         <>
                           {getPaginatedDropdownItems().map((item) => (
@@ -716,7 +718,7 @@ export default function InventoryPage() {
                           {totalItemDropdownPages > 1 && (
                             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
                               <div className="text-xs text-gray-600">
-                                Page {itemDropdownPage} of {totalItemDropdownPages}
+                                {t('common.pageOf', { current: itemDropdownPage, total: totalItemDropdownPages })}
                               </div>
                               <div className="flex gap-1">
                                 <button
@@ -727,7 +729,7 @@ export default function InventoryPage() {
                                   disabled={itemDropdownPage === 1}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Prev
+                                  {t('common.prev')}
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -737,7 +739,7 @@ export default function InventoryPage() {
                                   disabled={itemDropdownPage === totalItemDropdownPages}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Next
+                                  {t('common.next')}
                                 </button>
                               </div>
                             </div>
@@ -751,7 +753,7 @@ export default function InventoryPage() {
 
               {/* Location Dropdown */}
               <div className="relative" ref={locationDropdownRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('inventory.location')}</label>
                 <button
                   type="button"
                   onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
@@ -759,8 +761,8 @@ export default function InventoryPage() {
                 >
                   <span className={selectedLocationId ? 'text-gray-900' : 'text-gray-500'}>
                     {selectedLocationId
-                      ? locations.find(l => l.id === selectedLocationId)?.name || 'Choose a location'
-                      : 'Choose a location'}
+                      ? locations.find(l => l.id === selectedLocationId)?.name || t('inventory.chooseLocation')
+                      : t('inventory.chooseLocation')}
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${isLocationDropdownOpen ? 'transform rotate-180' : ''}`}
@@ -788,7 +790,7 @@ export default function InventoryPage() {
                           type="text"
                           value={locationSearchInput}
                           onChange={(e) => handleLocationSearchChange(e.target.value)}
-                          placeholder="Search locations..."
+                          placeholder={t('inventory.searchLocations')}
                           className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -804,7 +806,7 @@ export default function InventoryPage() {
                         }}
                         className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 text-gray-600 border-b border-gray-200 flex items-center justify-between"
                       >
-                        <span>Clear Selection</span>
+                        <span>{t('common.clearSelection')}</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -812,7 +814,7 @@ export default function InventoryPage() {
                     )}
                     <div className="max-h-60 overflow-y-auto">
                       {filteredLocations.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">No locations found</div>
+                        <div className="px-3 py-2 text-sm text-gray-500">{t('inventory.noLocationsFound')}</div>
                       ) : (
                         <>
                           {getPaginatedDropdownLocations().map((location) => (
@@ -835,7 +837,7 @@ export default function InventoryPage() {
                           {totalLocationDropdownPages > 1 && (
                             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
                               <div className="text-xs text-gray-600">
-                                Page {locationDropdownPage} of {totalLocationDropdownPages}
+                                {t('common.pageOf', { current: locationDropdownPage, total: totalLocationDropdownPages })}
                               </div>
                               <div className="flex gap-1">
                                 <button
@@ -846,7 +848,7 @@ export default function InventoryPage() {
                                   disabled={locationDropdownPage === 1}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Prev
+                                  {t('common.prev')}
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -856,7 +858,7 @@ export default function InventoryPage() {
                                   disabled={locationDropdownPage === totalLocationDropdownPages}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Next
+                                  {t('common.next')}
                                 </button>
                               </div>
                             </div>
@@ -870,7 +872,7 @@ export default function InventoryPage() {
 
               {/* Status Dropdown */}
               <div className="relative" ref={statusDropdownRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('inventory.status')}</label>
                 <button
                   type="button"
                   onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
@@ -878,8 +880,8 @@ export default function InventoryPage() {
                 >
                   <span className={selectedStatusId ? 'text-gray-900' : 'text-gray-500'}>
                     {selectedStatusId
-                      ? statuses.find(s => s.id === selectedStatusId)?.status || 'Choose a status'
-                      : 'Choose a status'}
+                      ? statuses.find(s => s.id === selectedStatusId)?.status || t('inventory.chooseStatus')
+                      : t('inventory.chooseStatus')}
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${isStatusDropdownOpen ? 'transform rotate-180' : ''}`}
@@ -907,7 +909,7 @@ export default function InventoryPage() {
                           type="text"
                           value={statusSearchInput}
                           onChange={(e) => handleStatusSearchChange(e.target.value)}
-                          placeholder="Search statuses..."
+                          placeholder={t('inventory.searchStatuses')}
                           className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -923,7 +925,7 @@ export default function InventoryPage() {
                         }}
                         className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 text-gray-600 border-b border-gray-200 flex items-center justify-between"
                       >
-                        <span>Clear Selection</span>
+                        <span>{t('common.clearSelection')}</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -931,7 +933,7 @@ export default function InventoryPage() {
                     )}
                     <div className="max-h-60 overflow-y-auto">
                       {filteredStatuses.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">No statuses found</div>
+                        <div className="px-3 py-2 text-sm text-gray-500">{t('inventory.noStatusesFound')}</div>
                       ) : (
                         <>
                           {getPaginatedDropdownStatuses().map((status) => (
@@ -954,7 +956,7 @@ export default function InventoryPage() {
                           {totalStatusDropdownPages > 1 && (
                             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
                               <div className="text-xs text-gray-600">
-                                Page {statusDropdownPage} of {totalStatusDropdownPages}
+                                {t('common.pageOf', { current: statusDropdownPage, total: totalStatusDropdownPages })}
                               </div>
                               <div className="flex gap-1">
                                 <button
@@ -965,7 +967,7 @@ export default function InventoryPage() {
                                   disabled={statusDropdownPage === 1}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Prev
+                                  {t('common.prev')}
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -975,7 +977,7 @@ export default function InventoryPage() {
                                   disabled={statusDropdownPage === totalStatusDropdownPages}
                                   className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  Next
+                                  {t('common.next')}
                                 </button>
                               </div>
                             </div>
@@ -993,7 +995,7 @@ export default function InventoryPage() {
                   onClick={handleRegisterInventory}
                   className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium"
                 >
-                  Register
+                  {t('inventory.register')}
                 </button>
               </div>
             </div>
@@ -1002,7 +1004,7 @@ export default function InventoryPage() {
           {/* Inventory List */}
           <div className="flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0 gap-2">
-              <h4 className="text-sm sm:text-md font-semibold text-gray-700">Registered Inventory</h4>
+              <h4 className="text-sm sm:text-md font-semibold text-gray-700">{t('inventory.registeredInventory')}</h4>
               <div className="flex items-center gap-2">
                 {selectedInventoryIds.length > 0 && (
                   <button
@@ -1010,21 +1012,21 @@ export default function InventoryPage() {
                     onClick={() => setSendModalOpen(true)}
                     className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                   >
-                    Send ({selectedInventoryIds.length})
+                    {t('inventory.send', { count: selectedInventoryIds.length })}
                   </button>
                 )}
                 {!loading && filteredInventories.length > 0 && (
                   <span className="text-xs text-gray-500">
-                    Total: {filteredInventories.length} records
+                    {t('inventory.totalRecords', { count: filteredInventories.length })}
                   </span>
                 )}
               </div>
             </div>
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : filteredInventories.length === 0 ? (
               <div className="text-center text-gray-500 text-sm py-4">
-                {inventorySearchInput.trim() !== '' ? 'No matching inventory records found' : 'No inventory records yet'}
+                {inventorySearchInput.trim() !== '' ? t('inventory.noMatchingRecords') : t('inventory.noRecordsYet')}
               </div>
             ) : (
               <>
@@ -1038,26 +1040,26 @@ export default function InventoryPage() {
                             checked={allPageSelected}
                             onChange={toggleSelectAllOnPage}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            title="Select all on this page"
+                            title={t('inventory.selectAll')}
                           />
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Tag
+                          {t('inventory.tag')}
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Item
+                          {t('inventory.item')}
                         </th>
                         <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Category
+                          {t('inventory.category')}
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Location
+                          {t('inventory.location')}
                         </th>
                         <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Status
+                          {t('inventory.status')}
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Actions
+                          {t('inventory.actions')}
                         </th>
                       </tr>
                     </thead>
@@ -1108,7 +1110,7 @@ export default function InventoryPage() {
                                 handleDeleteInventory(inventory.id);
                               }}
                               className="text-red-600 hover:text-red-900 transition-colors"
-                              title="Delete"
+                              title={t('common.delete')}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -1129,7 +1131,13 @@ export default function InventoryPage() {
                 {totalInventoryPages > 1 && (
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200 flex-shrink-0">
                     <div className="text-xs text-gray-600">
-                      Page {inventoryCurrentPage} of {totalInventoryPages} | Showing {((inventoryCurrentPage - 1) * inventoryPerPage) + 1}-{Math.min(inventoryCurrentPage * inventoryPerPage, filteredInventories.length)} of {filteredInventories.length}
+                      {t('inventory.showingRange', {
+                        current: inventoryCurrentPage,
+                        total: totalInventoryPages,
+                        from: ((inventoryCurrentPage - 1) * inventoryPerPage) + 1,
+                        to: Math.min(inventoryCurrentPage * inventoryPerPage, filteredInventories.length),
+                        count: filteredInventories.length,
+                      })}
                     </div>
                     <div className="flex gap-1">
                       <button
@@ -1137,7 +1145,7 @@ export default function InventoryPage() {
                         disabled={inventoryCurrentPage === 1}
                         className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        First
+                        {t('inventory.first')}
                       </button>
                       <button
                         onClick={() => handleInventoryPageChange(inventoryCurrentPage - 1)}
@@ -1158,7 +1166,7 @@ export default function InventoryPage() {
                         disabled={inventoryCurrentPage === totalInventoryPages}
                         className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Last
+                        {t('inventory.last')}
                       </button>
                     </div>
                   </div>
@@ -1172,10 +1180,10 @@ export default function InventoryPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModalOpen}
-        title="Delete Inventory"
-        message="Are you sure you want to delete this inventory record?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('inventory.deleteInventoryTitle')}
+        message={t('inventory.deleteInventoryMessage')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={confirmDeleteInventory}
         onCancel={() => {

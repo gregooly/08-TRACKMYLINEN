@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export type LocationEditTarget = {
   id: number;
@@ -23,6 +24,7 @@ export default function LocationEditModal({
   onCancel,
   loading = false,
 }: LocationEditModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
 
@@ -49,30 +51,32 @@ export default function LocationEditModal({
 
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Location</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {t('locationEdit.title')}
+          </h3>
 
           <div className="space-y-3 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location name
+                {t('locationEdit.nameLabel')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter location"
+                placeholder={t('settings.enterLocation')}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email (optional)
+                {t('locationEdit.emailLabel')}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter email (optional)"
+                placeholder={t('settings.enterEmailOptional')}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               />
             </div>
@@ -85,7 +89,7 @@ export default function LocationEditModal({
               disabled={loading}
               className="px-4 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -95,7 +99,7 @@ export default function LocationEditModal({
               }
               className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Save'}
+              {loading ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </div>

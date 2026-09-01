@@ -6,6 +6,7 @@ import LocationEditModal, {
   type LocationEditTarget,
 } from '@/components/ui/LocationEditModal';
 import { useNotification } from '@/hooks/useNotification';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Location {
   id: number;
@@ -39,6 +40,22 @@ interface Item {
 
 export default function SettingsPage() {
   const notification = useNotification();
+  const { t } = useTranslation();
+
+  const deleteTypeLabel = (type: 'location' | 'category' | 'status' | 'item' | null) => {
+    switch (type) {
+      case 'location':
+        return t('settings.typeLocation');
+      case 'category':
+        return t('settings.typeCategory');
+      case 'status':
+        return t('settings.typeStatus');
+      case 'item':
+        return t('settings.typeItem');
+      default:
+        return '';
+    }
+  };
   
   const [locationInput, setLocationInput] = useState('');
   const [locationEmailInput, setLocationEmailInput] = useState('');
@@ -262,13 +279,13 @@ export default function SettingsPage() {
       );
       
       if (exists) {
-        notification.warning('Duplicate Location', 'This location already exists.');
+        notification.warning(t('settings.duplicateLocationTitle'), t('settings.duplicateLocation'));
         return;
       }
 
       const email = locationEmailInput.trim();
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        notification.warning('Invalid Email', 'Please enter a valid email address or leave it empty.');
+        notification.warning(t('settings.invalidEmailTitle'), t('settings.invalidEmail'));
         return;
       }
 
@@ -288,14 +305,14 @@ export default function SettingsPage() {
           setLocationInput('');
           setLocationEmailInput('');
           await fetchLocations();
-          notification.success('Location Added', 'The location has been added successfully.');
+          notification.success(t('settings.locationAddedTitle'), t('settings.locationAdded'));
         } else {
           console.error('Failed to add location:', data);
-          notification.error('Error', data.error || 'Failed to add location');
+          notification.error(t('settings.error'), data.error || t('settings.failedAddLocation'));
         }
       } catch (error) {
         console.error('Error adding location:', error);
-        notification.error('Network Error', 'Failed to add location. Please try again.');
+        notification.error(t('settings.error'), t('settings.networkError'));
       }
     }
   };
@@ -308,7 +325,7 @@ export default function SettingsPage() {
       );
       
       if (exists) {
-        notification.warning('Duplicate Category', 'This category already exists.');
+        notification.warning(t('settings.duplicateCategoryTitle'), t('settings.duplicateCategory'));
         return;
       }
 
@@ -322,14 +339,14 @@ export default function SettingsPage() {
         if (response.ok) {
           setCategoryInput('');
           await fetchCategories();
-          notification.success('Category Added', 'The category has been added successfully.');
+          notification.success(t('settings.categoryAddedTitle'), t('settings.categoryAdded'));
         } else {
           const data = await response.json();
-          notification.error('Error', data.error || 'Failed to add category');
+          notification.error(t('settings.error'), data.error || t('settings.failedAddCategory'));
         }
       } catch (error) {
         console.error('Error adding category:', error);
-        notification.error('Network Error', 'Failed to add category. Please try again.');
+        notification.error(t('settings.error'), t('settings.networkError'));
       }
     }
   };
@@ -342,7 +359,7 @@ export default function SettingsPage() {
       );
       
       if (exists) {
-        notification.warning('Duplicate Status', 'This status already exists.');
+        notification.warning(t('settings.duplicateStatusTitle'), t('settings.duplicateStatus'));
         return;
       }
 
@@ -356,14 +373,14 @@ export default function SettingsPage() {
         if (response.ok) {
           setStatusInput('');
           await fetchStatuses();
-          notification.success('Status Added', 'The status has been added successfully.');
+          notification.success(t('settings.statusAddedTitle'), t('settings.statusAdded'));
         } else {
           const data = await response.json();
-          notification.error('Error', data.error || 'Failed to add status');
+          notification.error(t('settings.error'), data.error || t('settings.failedAddStatus'));
         }
       } catch (error) {
         console.error('Error adding status:', error);
-        notification.error('Network Error', 'Failed to add status. Please try again.');
+        notification.error(t('settings.error'), t('settings.networkError'));
       }
     }
   };
@@ -373,7 +390,7 @@ export default function SettingsPage() {
       // Check if tag already exists
       const tagExists = items.some(item => item.tag.toLowerCase() === itemTagInput.trim().toLowerCase());
       if (tagExists) {
-        notification.error('Duplicate Tag', 'This tag already exists. Please use a unique tag.');
+        notification.error(t('settings.duplicateTagTitle'), t('settings.duplicateTag'));
         return;
       }
 
@@ -392,17 +409,17 @@ export default function SettingsPage() {
           setItemNameInput('');
           setItemTagInput('');
           await fetchItems();
-          notification.success('Item Added', 'The item has been added successfully.');
+          notification.success(t('settings.itemAddedTitle'), t('settings.itemAdded'));
         } else {
           const data = await response.json();
-          notification.error('Error', data.error || 'Failed to add item');
+          notification.error(t('settings.error'), data.error || t('settings.failedAddItem'));
         }
       } catch (error) {
         console.error('Error adding item:', error);
-        notification.error('Network Error', 'Failed to add item. Please try again.');
+        notification.error(t('settings.error'), t('settings.networkError'));
       }
     } else {
-      notification.warning('Missing Information', 'Please select a category and fill in both name and tag fields.');
+      notification.warning(t('settings.missingInfoTitle'), t('settings.missingInfo'));
     }
   };
 
@@ -432,7 +449,7 @@ export default function SettingsPage() {
     email: string | null
   ) => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      notification.warning('Invalid Email', 'Please enter a valid email address or leave it empty.');
+      notification.warning(t('settings.invalidEmailTitle'), t('settings.invalidEmail'));
       return;
     }
 
@@ -448,13 +465,13 @@ export default function SettingsPage() {
       if (response.ok) {
         setLocationEditModal({ isOpen: false, location: null });
         await fetchLocations();
-        notification.success('Location Updated', 'The location has been updated successfully.');
+        notification.success(t('settings.locationUpdatedTitle'), t('settings.locationUpdated'));
       } else {
-        notification.error('Error', data.error || 'Failed to update location');
+        notification.error(t('settings.error'), data.error || t('settings.failedUpdateLocation'));
       }
     } catch (error) {
       console.error('Error updating location:', error);
-      notification.error('Network Error', 'Failed to update location. Please try again.');
+      notification.error(t('settings.error'), t('settings.networkError'));
     } finally {
       setLocationEditLoading(false);
     }
@@ -521,26 +538,26 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('settings.title')}</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Location Panel */}
         <div className="bg-white rounded-lg shadow p-4 h-[calc(100vh-190px)] flex flex-col lg:col-span-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Location</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{t('settings.location')}</h3>
           <div className="mb-3 flex gap-2">
             <input
               type="text"
               value={locationInput}
               onChange={(e) => handleLocationInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddLocation()}
-              placeholder="Enter location"
+              placeholder={t('settings.enterLocation')}
               className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none  focus:border-green-400"
             />
             <button 
               onClick={handleAddLocation}
               className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
             >
-              ADD
+              {t('common.add')}
             </button>
           </div>
           <div className="mb-3">
@@ -549,17 +566,17 @@ export default function SettingsPage() {
               value={locationEmailInput}
               onChange={(e) => setLocationEmailInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddLocation()}
-              placeholder="Enter email (optional)"
+              placeholder={t('settings.enterEmailOptional')}
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
             />
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : locations.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No locations yet</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noLocations')}</div>
             ) : filteredLocations.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No matching locations</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noMatchingLocations')}</div>
             ) : (
               <div className="space-y-2">
                 {filteredLocations.map((location) => (
@@ -574,7 +591,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => handleEditLocation(location)}
                         className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Edit"
+                        title={t('common.edit')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -584,7 +601,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => handleDeleteLocation(location.id, location.name)}
                         className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"></polyline>
@@ -603,30 +620,30 @@ export default function SettingsPage() {
 
         {/* Category Panel */}
         <div className="bg-white rounded-lg shadow p-4 h-[calc(100vh-190px)] flex flex-col lg:col-span-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Category</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{t('settings.category')}</h3>
           <div className="mb-3 flex gap-2">
             <input
               type="text"
               value={categoryInput}
               onChange={(e) => handleCategoryInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-              placeholder="Enter category"
+              placeholder={t('settings.enterCategory')}
               className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none  focus:border-green-400"
             />
             <button 
               onClick={handleAddCategory}
               className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
             >
-              ADD
+              {t('common.add')}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : categories.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No categories yet</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noCategories')}</div>
             ) : filteredCategories.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No matching categories</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noMatchingCategories')}</div>
             ) : (
               <div className="space-y-2">
                 {filteredCategories.map((category) => (
@@ -648,7 +665,7 @@ export default function SettingsPage() {
                           handleDeleteCategory(category.id, category.name);
                         }}
                         className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"></polyline>
@@ -667,7 +684,7 @@ export default function SettingsPage() {
 
         {/* Item Panel - Double Width */}
         <div className="bg-white rounded-lg shadow p-4 h-[calc(100vh-190px)] flex flex-col lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Item</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{t('settings.item')}</h3>
           <div className="mb-3 space-y-2">
             <div className="flex gap-2">
               <div className="flex-1 relative" ref={categoryDropdownRef}>
@@ -678,7 +695,7 @@ export default function SettingsPage() {
                   <span className={selectedCategoryId ? 'text-gray-900' : 'text-gray-500'}>
                     {selectedCategoryId 
                       ? categories.find(c => c.id === selectedCategoryId)?.name 
-                      : 'Choose a category'}
+                      : t('settings.chooseCategory')}
                   </span>
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -696,7 +713,7 @@ export default function SettingsPage() {
                           type="text"
                           value={categorySearchInput}
                           onChange={(e) => handleCategorySearchChange(e.target.value)}
-                          placeholder="Search categories..."
+                          placeholder={t('settings.searchCategories')}
                           className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
                           autoFocus
                         />
@@ -712,7 +729,7 @@ export default function SettingsPage() {
                         }}
                         className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100"
                       >
-                        <span className="text-gray-700">Clear Selection</span>
+                        <span className="text-gray-700">{t('common.clearSelection')}</span>
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -722,7 +739,7 @@ export default function SettingsPage() {
                     <div className="max-h-48 overflow-y-auto">
                       {filteredCategoriesForDropdown.length === 0 ? (
                         <div className="px-3 py-4 text-sm text-gray-500 text-center">
-                          No items available
+                          {t('common.noItemsAvailable')}
                         </div>
                       ) : (
                         filteredCategoriesForDropdown.map((category) => (
@@ -752,7 +769,7 @@ export default function SettingsPage() {
                 value={itemNameInput}
                 onChange={(e) => setItemNameInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
-                placeholder="Enter item name"
+                placeholder={t('settings.enterItemName')}
                 className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               />
               <input
@@ -760,22 +777,22 @@ export default function SettingsPage() {
                 value={itemTagInput}
                 onChange={(e) => setItemTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
-                placeholder="Enter tag"
+                placeholder={t('settings.enterTag')}
                 className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               />
               <button 
                 onClick={handleAddItem}
                 className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
               >
-                ADD
+                {t('common.add')}
               </button>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto mb-2">
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : items.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No items yet</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noItems')}</div>
             ) : (
               <div className="space-y-2">
                 {getPaginatedItems().map((item) => (
@@ -783,14 +800,14 @@ export default function SettingsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       <div className="text-xs text-gray-500">
-                        Category: {item.category?.name || 'Unknown'} | Tag: {item.tag}
+                        {t('settings.categoryLabel', { category: item.category?.name || t('settings.unknown'), tag: item.tag })}
                       </div>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleDeleteItem(item.id, item.name)}
                         className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"></polyline>
@@ -810,7 +827,7 @@ export default function SettingsPage() {
           {!loading && items.length > 0 && totalItemPages > 1 && (
             <div className="flex items-center justify-between pt-2 border-t border-gray-200">
               <div className="text-xs text-gray-600">
-                Page {itemsCurrentPage} of {totalItemPages}
+                {t('common.pageOf', { current: itemsCurrentPage, total: totalItemPages })}
               </div>
               <div className="flex gap-1">
                 <button
@@ -818,14 +835,14 @@ export default function SettingsPage() {
                   disabled={itemsCurrentPage === 1}
                   className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Prev
+                  {t('common.prev')}
                 </button>
                 <button
                   onClick={() => handleItemPageChange(itemsCurrentPage + 1)}
                   disabled={itemsCurrentPage === totalItemPages}
                   className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               </div>
             </div>
@@ -834,30 +851,30 @@ export default function SettingsPage() {
 
         {/* Status Panel */}
         <div className="bg-white rounded-lg shadow p-4 h-[calc(100vh-190px)] flex flex-col lg:col-span-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Status</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{t('settings.status')}</h3>
           <div className="mb-3 flex gap-2">
             <input
               type="text"
               value={statusInput}
               onChange={(e) => handleStatusInputChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddStatus()}
-              placeholder="Enter status"
+              placeholder={t('settings.enterStatus')}
               className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none  focus:border-green-400"
             />
             <button 
               onClick={handleAddStatus}
               className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium whitespace-nowrap"
             >
-              ADD
+              {t('common.add')}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('common.loading')}</div>
             ) : statuses.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No statuses yet</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noStatuses')}</div>
             ) : filteredStatuses.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">No matching statuses</div>
+              <div className="text-center text-gray-500 text-sm py-4">{t('settings.noMatchingStatuses')}</div>
             ) : (
               <div className="space-y-2">
                 {filteredStatuses.map((status) => (
@@ -868,7 +885,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => handleDeleteStatus(status.id, status.status)}
                         className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"></polyline>
@@ -897,10 +914,10 @@ export default function SettingsPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title={`Delete ${deleteModal.type ? deleteModal.type.charAt(0).toUpperCase() + deleteModal.type.slice(1) : ''}`}
-        message={`Are you sure you want to delete "${deleteModal.name}"? This action cannot be undone.`}
-        confirmLabel="OK"
-        cancelLabel="Cancel"
+        title={t('settings.deleteTitle', { type: deleteTypeLabel(deleteModal.type) })}
+        message={t('settings.deleteMessage', { name: deleteModal.name })}
+        confirmLabel={t('common.ok')}
+        cancelLabel={t('common.cancel')}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteModal({ isOpen: false, type: null, id: null, name: '' })}
         variant="danger"

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function ApiKeyPage() {
+  const { t } = useTranslation();
   const [apiKey, setApiKey] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -143,7 +145,7 @@ export default function ApiKeyPage() {
 
   return (
     <div className="px-2 sm:px-0">
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6">API Key</h2>
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6">{t('apiKey.title')}</h2>
       
       {/* Error Message */}
       {error && (

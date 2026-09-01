@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Location {
   id: number;
@@ -31,6 +32,7 @@ export default function SendPackModal({
   onCancel,
   loading = false,
 }: SendPackModalProps) {
+  const { t } = useTranslation();
   const [locationId, setLocationId] = useState<number | ''>('');
   const [statusId, setStatusId] = useState<number | ''>('');
 
@@ -52,6 +54,9 @@ export default function SendPackModal({
   const canSubmit =
     locationId !== '' && statusId !== '' && !loading && selectedCount > 0;
 
+  const descriptionKey =
+    selectedCount === 1 ? 'sendPack.descriptionOne' : 'sendPack.descriptionMany';
+
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="fixed inset-0 bg-black opacity-60" onClick={onCancel} />
@@ -59,17 +64,16 @@ export default function SendPackModal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Send Pack
+            {t('sendPack.title')}
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            Move {selectedCount} selected item{selectedCount === 1 ? '' : 's'} to
-            a location. The virtual pack is destroyed after send.
+            {t(descriptionKey, { count: selectedCount })}
           </p>
 
           <div className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location
+                {t('inventory.location')}
               </label>
               <select
                 value={locationId}
@@ -78,7 +82,7 @@ export default function SendPackModal({
                 }
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               >
-                <option value="">Choose a location</option>
+                <option value="">{t('sendPack.chooseLocation')}</option>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name}
@@ -89,7 +93,7 @@ export default function SendPackModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
+                {t('inventory.status')}
               </label>
               <select
                 value={statusId}
@@ -98,7 +102,7 @@ export default function SendPackModal({
                 }
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
               >
-                <option value="">Choose a status</option>
+                <option value="">{t('sendPack.chooseStatus')}</option>
                 {statuses.map((st) => (
                   <option key={st.id} value={st.id}>
                     {st.status}
@@ -115,7 +119,7 @@ export default function SendPackModal({
               disabled={loading}
               className="px-4 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -127,7 +131,7 @@ export default function SendPackModal({
               }}
               className="px-4 py-1.5 text-sm font-medium rounded-md transition-colors bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send'}
+              {loading ? t('sendPack.sending') : t('sendPack.send')}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Category {
   id: number;
@@ -55,6 +56,7 @@ interface HistoryRecord {
 }
 
 export default function HistoryPage() {
+  const { t } = useTranslation();
   const [historySearchInput, setHistorySearchInput] = useState('');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
@@ -202,7 +204,7 @@ export default function HistoryPage() {
   const filterHistoriesBySelections = () => {
     let filteredHist = histories;
     
-    // Filter by item selection
+    // If a specific item is selected in left panel, show only that item's history
     if (selectedItemId) {
       filteredHist = filteredHist.filter(hist => hist.item_id === selectedItemId);
     } else {
@@ -214,18 +216,19 @@ export default function HistoryPage() {
         );
       }
     }
-
-    // Filter by location
+    
+    // Filter by selected location
     if (selectedLocationId) {
       filteredHist = filteredHist.filter(hist => hist.location_id === selectedLocationId);
     }
-
-    // Filter by status
+    
+    // Filter by selected status
     if (selectedStatusId) {
       filteredHist = filteredHist.filter(hist => hist.status_id === selectedStatusId);
     }
     
     setFilteredHistories(filteredHist);
+    // Reset to first page when filters change
     setHistoryCurrentPage(1);
   };
 
@@ -242,10 +245,7 @@ export default function HistoryPage() {
     return filteredHistories.slice(indexOfFirstHistory, indexOfLastHistory);
   };
 
-  const totalItemPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const totalHistoryPages = Math.ceil(filteredHistories.length / historyPerPage);
-
-  // Dropdown pagination helpers
+  // Dropdown pagination helper functions
   const getPaginatedDropdownLocations = () => {
     const indexOfLast = locationDropdownPage * dropdownItemsPerPage;
     const indexOfFirst = indexOfLast - dropdownItemsPerPage;
@@ -258,6 +258,9 @@ export default function HistoryPage() {
     return filteredStatuses.slice(indexOfFirst, indexOfLast);
   };
 
+  const totalItemPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const totalHistoryPages = Math.ceil(filteredHistories.length / historyPerPage);
+  
   const totalLocationDropdownPages = Math.ceil(filteredLocations.length / dropdownItemsPerPage);
   const totalStatusDropdownPages = Math.ceil(filteredStatuses.length / dropdownItemsPerPage);
 
@@ -267,34 +270,6 @@ export default function HistoryPage() {
 
   const handleHistoryPageChange = (pageNumber: number) => {
     setHistoryCurrentPage(pageNumber);
-  };
-
-  const handleLocationSearchChange = (value: string) => {
-    setLocationSearchInput(value);
-    if (value.trim() === '') {
-      setFilteredLocations(locations);
-    } else {
-      const searchLower = value.toLowerCase();
-      const filtered = locations.filter(loc =>
-        loc.name.toLowerCase().includes(searchLower)
-      );
-      setFilteredLocations(filtered);
-    }
-    setLocationDropdownPage(1);
-  };
-
-  const handleStatusSearchChange = (value: string) => {
-    setStatusSearchInput(value);
-    if (value.trim() === '') {
-      setFilteredStatuses(statuses);
-    } else {
-      const searchLower = value.toLowerCase();
-      const filtered = statuses.filter(status =>
-        status.status.toLowerCase().includes(searchLower)
-      );
-      setFilteredStatuses(filtered);
-    }
-    setStatusDropdownPage(1);
   };
 
   const handleHistorySearch = () => {
@@ -310,6 +285,36 @@ export default function HistoryPage() {
     }
     // Reset to first page when searching
     setItemsCurrentPage(1);
+  };
+
+  const handleLocationSearchChange = (value: string) => {
+    setLocationSearchInput(value);
+    if (value.trim() === '') {
+      setFilteredLocations(locations);
+    } else {
+      const searchTerm = value.toLowerCase();
+      const filtered = locations.filter(location =>
+        location.name.toLowerCase().includes(searchTerm)
+      );
+      setFilteredLocations(filtered);
+    }
+    // Reset to first page when searching
+    setLocationDropdownPage(1);
+  };
+
+  const handleStatusSearchChange = (value: string) => {
+    setStatusSearchInput(value);
+    if (value.trim() === '') {
+      setFilteredStatuses(statuses);
+    } else {
+      const searchTerm = value.toLowerCase();
+      const filtered = statuses.filter(status =>
+        status.status.toLowerCase().includes(searchTerm)
+      );
+      setFilteredStatuses(filtered);
+    }
+    // Reset to first page when searching
+    setStatusDropdownPage(1);
   };
 
   const formatDate = (dateString: string) => {
@@ -331,7 +336,7 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">History</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">{t('history.title')}</h2>
       <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4">
         {/* First Panel - Item Panel - Full width on mobile, 1/4 on desktop */}
         <div className="bg-white rounded-lg shadow p-3 sm:p-4 h-[300px] sm:h-[400px] lg:h-[calc(100vh-190px)] flex flex-col lg:col-span-1">
@@ -444,190 +449,246 @@ export default function HistoryPage() {
             )}
           </div>
 
-          {/* Location and Status Filter Dropdowns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 flex-shrink-0">
-            {/* Location Dropdown */}
-            <div className="relative" ref={locationDropdownRef}>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Location Filter
-              </label>
-              <button
-                onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
-                className="w-full px-3 py-2 text-sm text-left border border-gray-300 rounded-md hover:border-gray-400 bg-white flex items-center justify-between"
-              >
-                <span className={selectedLocationId ? 'text-gray-900' : 'text-gray-500'}>
-                  {selectedLocationId 
-                    ? locations.find(l => l.id === selectedLocationId)?.name || 'Select Location'
-                    : 'All Locations'}
-                </span>
-                <span className="text-gray-400">▼</span>
-              </button>
+          {/* Filter Dropdowns */}
+          <div className="mb-4 flex-shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Location Dropdown */}
+              <div className="relative" ref={locationDropdownRef}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400 bg-white text-left flex items-center justify-between"
+                >
+                  <span className={selectedLocationId ? 'text-gray-900' : 'text-gray-500'}>
+                    {selectedLocationId
+                      ? locations.find(l => l.id === selectedLocationId)?.name || 'Choose a location'
+                      : 'All Locations'}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isLocationDropdownOpen ? 'transform rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {isLocationDropdownOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-hidden flex flex-col">
-                  {/* Search Input */}
-                  <div className="p-2 border-b border-gray-200">
-                    <input
-                      type="text"
-                      placeholder="Search locations..."
-                      value={locationSearchInput}
-                      onChange={(e) => handleLocationSearchChange(e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-
-                  {/* Clear Selection */}
-                  {selectedLocationId && (
-                    <button
-                      onClick={() => {
-                        setSelectedLocationId(null);
-                        setIsLocationDropdownOpen(false);
-                      }}
-                      className="w-full px-3 py-2 text-sm text-left hover:bg-red-50 text-red-600 border-b border-gray-200"
-                    >
-                      Clear Selection
-                    </button>
-                  )}
-
-                  {/* Location List */}
-                  <div className="overflow-y-auto flex-1">
-                    {getPaginatedDropdownLocations().map((location) => (
-                      <button
-                        key={location.id}
+                {isLocationDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg">
+                    <div className="p-2 border-b border-gray-200">
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                          type="text"
+                          value={locationSearchInput}
+                          onChange={(e) => handleLocationSearchChange(e.target.value)}
+                          placeholder="Search locations..."
+                          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    {selectedLocationId && (
+                      <div
                         onClick={() => {
-                          setSelectedLocationId(location.id);
+                          setSelectedLocationId(null);
                           setIsLocationDropdownOpen(false);
+                          setLocationSearchInput('');
+                          setFilteredLocations(locations);
                         }}
-                        className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${
-                          selectedLocationId === location.id ? 'bg-green-50 text-green-700 font-medium' : ''
-                        }`}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 text-gray-600 border-b border-gray-200 flex items-center justify-between"
                       >
-                        {location.name}
-                      </button>
-                    ))}
-                    {filteredLocations.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No locations found</div>
+                        <span>Clear Selection</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
                     )}
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredLocations.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">No locations found</div>
+                      ) : (
+                        <>
+                          {getPaginatedDropdownLocations().map((location) => (
+                            <div
+                              key={location.id}
+                              onClick={() => {
+                                setSelectedLocationId(location.id);
+                                setIsLocationDropdownOpen(false);
+                                setLocationSearchInput('');
+                                setFilteredLocations(locations);
+                                setLocationDropdownPage(1);
+                              }}
+                              className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 ${
+                                selectedLocationId === location.id ? 'bg-green-50 text-green-700' : 'text-gray-900'
+                              }`}
+                            >
+                              {location.name}
+                            </div>
+                          ))}
+                          {totalLocationDropdownPages > 1 && (
+                            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
+                              <div className="text-xs text-gray-600">
+                                Page {locationDropdownPage} of {totalLocationDropdownPages}
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocationDropdownPage(Math.max(1, locationDropdownPage - 1));
+                                  }}
+                                  disabled={locationDropdownPage === 1}
+                                  className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Prev
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocationDropdownPage(Math.min(totalLocationDropdownPages, locationDropdownPage + 1));
+                                  }}
+                                  disabled={locationDropdownPage === totalLocationDropdownPages}
+                                  className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Pagination */}
-                  {totalLocationDropdownPages > 1 && (
-                    <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50">
-                      <span className="text-xs text-gray-600">
-                        Page {locationDropdownPage} of {totalLocationDropdownPages}
-                      </span>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => setLocationDropdownPage(prev => Math.max(1, prev - 1))}
-                          disabled={locationDropdownPage === 1}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
+              {/* Status Dropdown */}
+              <div className="relative" ref={statusDropdownRef}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400 bg-white text-left flex items-center justify-between"
+                >
+                  <span className={selectedStatusId ? 'text-gray-900' : 'text-gray-500'}>
+                    {selectedStatusId
+                      ? statuses.find(s => s.id === selectedStatusId)?.status || 'Choose a status'
+                      : 'All Statuses'}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isStatusDropdownOpen ? 'transform rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isStatusDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg">
+                    <div className="p-2 border-b border-gray-200">
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          Prev
-                        </button>
-                        <button
-                          onClick={() => setLocationDropdownPage(prev => Math.min(totalLocationDropdownPages, prev + 1))}
-                          disabled={locationDropdownPage === totalLocationDropdownPages}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
-                        >
-                          Next
-                        </button>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                          type="text"
+                          value={statusSearchInput}
+                          onChange={(e) => handleStatusSearchChange(e.target.value)}
+                          placeholder="Search statuses..."
+                          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-green-400"
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Status Dropdown */}
-            <div className="relative" ref={statusDropdownRef}>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Status Filter
-              </label>
-              <button
-                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                className="w-full px-3 py-2 text-sm text-left border border-gray-300 rounded-md hover:border-gray-400 bg-white flex items-center justify-between"
-              >
-                <span className={selectedStatusId ? 'text-gray-900' : 'text-gray-500'}>
-                  {selectedStatusId 
-                    ? statuses.find(s => s.id === selectedStatusId)?.status || 'Select Status'
-                    : 'All Statuses'}
-                </span>
-                <span className="text-gray-400">▼</span>
-              </button>
-
-              {isStatusDropdownOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-hidden flex flex-col">
-                  {/* Search Input */}
-                  <div className="p-2 border-b border-gray-200">
-                    <input
-                      type="text"
-                      placeholder="Search statuses..."
-                      value={statusSearchInput}
-                      onChange={(e) => handleStatusSearchChange(e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-
-                  {/* Clear Selection */}
-                  {selectedStatusId && (
-                    <button
-                      onClick={() => {
-                        setSelectedStatusId(null);
-                        setIsStatusDropdownOpen(false);
-                      }}
-                      className="w-full px-3 py-2 text-sm text-left hover:bg-red-50 text-red-600 border-b border-gray-200"
-                    >
-                      Clear Selection
-                    </button>
-                  )}
-
-                  {/* Status List */}
-                  <div className="overflow-y-auto flex-1">
-                    {getPaginatedDropdownStatuses().map((status) => (
-                      <button
-                        key={status.id}
+                    {selectedStatusId && (
+                      <div
                         onClick={() => {
-                          setSelectedStatusId(status.id);
+                          setSelectedStatusId(null);
                           setIsStatusDropdownOpen(false);
+                          setStatusSearchInput('');
+                          setFilteredStatuses(statuses);
                         }}
-                        className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${
-                          selectedStatusId === status.id ? 'bg-green-50 text-green-700 font-medium' : ''
-                        }`}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 text-gray-600 border-b border-gray-200 flex items-center justify-between"
                       >
-                        {status.status}
-                      </button>
-                    ))}
-                    {filteredStatuses.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No statuses found</div>
-                    )}
-                  </div>
-
-                  {/* Pagination */}
-                  {totalStatusDropdownPages > 1 && (
-                    <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50">
-                      <span className="text-xs text-gray-600">
-                        Page {statusDropdownPage} of {totalStatusDropdownPages}
-                      </span>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => setStatusDropdownPage(prev => Math.max(1, prev - 1))}
-                          disabled={statusDropdownPage === 1}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
-                        >
-                          Prev
-                        </button>
-                        <button
-                          onClick={() => setStatusDropdownPage(prev => Math.min(totalStatusDropdownPages, prev + 1))}
-                          disabled={statusDropdownPage === totalStatusDropdownPages}
-                          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
-                        >
-                          Next
-                        </button>
+                        <span>Clear Selection</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </div>
+                    )}
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredStatuses.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">No statuses found</div>
+                      ) : (
+                        <>
+                          {getPaginatedDropdownStatuses().map((status) => (
+                            <div
+                              key={status.id}
+                              onClick={() => {
+                                setSelectedStatusId(status.id);
+                                setIsStatusDropdownOpen(false);
+                                setStatusSearchInput('');
+                                setFilteredStatuses(statuses);
+                                setStatusDropdownPage(1);
+                              }}
+                              className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 ${
+                                selectedStatusId === status.id ? 'bg-green-50 text-green-700' : 'text-gray-900'
+                              }`}
+                            >
+                              {status.status}
+                            </div>
+                          ))}
+                          {totalStatusDropdownPages > 1 && (
+                            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
+                              <div className="text-xs text-gray-600">
+                                Page {statusDropdownPage} of {totalStatusDropdownPages}
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setStatusDropdownPage(Math.max(1, statusDropdownPage - 1));
+                                  }}
+                                  disabled={statusDropdownPage === 1}
+                                  className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Prev
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setStatusDropdownPage(Math.min(totalStatusDropdownPages, statusDropdownPage + 1));
+                                  }}
+                                  disabled={statusDropdownPage === totalStatusDropdownPages}
+                                  className="px-2 py-0.5 text-xs border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

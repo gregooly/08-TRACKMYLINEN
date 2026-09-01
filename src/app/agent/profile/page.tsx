@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Helper function to decode JWT token
 function decodeToken(token: string) {
@@ -25,6 +26,7 @@ function decodeToken(token: string) {
 export default function AgentProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [agentId, setAgentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -114,7 +116,7 @@ export default function AgentProfilePage() {
   return (
     <div className="h-full flex flex-col items-center">
       <div className="w-full max-w-2xl">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 ">User Profile</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 ">{t('common.userProfile')}</h2>
         
         {/* Change Password Section */}
         <div className="bg-white rounded-lg shadow p-6">

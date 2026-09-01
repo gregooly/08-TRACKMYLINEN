@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface User {
   id: number;
@@ -14,6 +15,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,7 +112,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">User Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('users.userManagement')}</h2>
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-center h-64">
           <div className="text-center">
             <img 
@@ -128,7 +130,7 @@ export default function AdminUsersPage() {
   return (
     <div className="pb-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('users.userManagement')}</h2>
         <button
           onClick={fetchUsers}
           className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
