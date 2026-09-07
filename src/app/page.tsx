@@ -74,6 +74,12 @@ function HomeContent() {
 
   const handleLoginClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    if (userRole === 'agent' && !formData.username.trim()) {
+      showToast('error', t('auth.toastSignInFailedTitle'), t('auth.usernameRequired'));
+      return;
+    }
+
     setSubmitLoading(true);
 
     try {
@@ -87,6 +93,7 @@ function HomeContent() {
           email: formData.email,
           password: formData.password,
           role: userRole,
+          ...(userRole === 'agent' ? { username: formData.username } : {}),
         }),
       });
 
@@ -247,11 +254,9 @@ function HomeContent() {
                         </button>
                       </div>
                     </div>
-                    {userRole === 'admin' && (
-                      <p className="text-xs text-gray-600 ">
-                        {t('auth.pulsepointHint')}
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 ">
+                      {t('auth.pulsepointHint')}
+                    </p>
                   </div>
                 )}
               </div>
@@ -261,7 +266,7 @@ function HomeContent() {
                 <div className="space-y-4 xl:space-y-2">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      {userRole === 'admin' ? t('auth.managerEmail') : t('auth.username')}
+                      {t('auth.managerEmail')}
                     </label>
                     <input
                       type="email"
@@ -271,9 +276,27 @@ function HomeContent() {
                       onChange={handleChange}
                       required
                       className="w-full text-sm px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                      placeholder={userRole === 'admin' ? t('auth.placeholderManagerEmail') : t('auth.placeholderUsername')}
+                      placeholder={t('auth.placeholderManagerEmail')}
                     />
                   </div>
+
+                  {userRole === 'agent' && (
+                    <div>
+                      <label htmlFor="login-username" className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('auth.username')}
+                      </label>
+                      <input
+                        type="text"
+                        id="login-username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
+                        className="w-full text-sm px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
+                        placeholder={t('auth.placeholderUsername')}
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">

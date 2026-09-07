@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, generateToken } from '@/lib/auth';
+import { findPulsePointAdminByEmail, PulsePointUnavailableError } from '@/lib/pulsepoint';
 import { z } from 'zod';
 import axios from 'axios';
 
-const signinSchema = z.object({
-  email: z.string().min(1, 'Email or username is required'),
-  password: z.string().min(1, 'Password is required'),
-  role: z.enum(['admin', 'agent']),
-});
+const signinSchema = z.discriminatedUnion('role', [
+  z.object({
+    role: z.literal('admin'),
+    email: z.string().email('A valid manager email is required'),
+    password: z.string().min(1, 'Password is required'),
+  }),
+  z.object({
+    role: z.literal('agent'),
+    email: z.string().email('A valid manager email is required'),
+    username: z.string().min(1, 'Username is required'),
+    password: z.string().min(1, 'Password is required'),
+  }),
+]);
 
 // Cookie security settings based on environment
 const isProduction = process.env.NODE_ENV === 'production';
@@ -41,19 +50,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (response.data.status === 1) {
-          // Get user details from PulsePoint with timeout
-          const userDetailsResponse = await axios.get('https://api.pulsepoint.clinotag.com/api/user/allusers', {
-            auth: {
-              username: process.env.PULSEPOINT_API_USERNAME || '',
-              password: process.env.PULSEPOINT_API_PASSWORD || ''
-            },
-            timeout: API_TIMEOUT
-          });
-
-          const allUsers = userDetailsResponse.data?.data || userDetailsResponse.data || [];
-          const user = allUsers.find((u: { email?: string; id: number; status: number }) => 
-            u.email?.toLowerCase() === validatedData.email.toLowerCase()
-          );
+          const user = await findPulsePointAdminByEmail(validatedData.email);
 
           if (user) {
             // Generate JWT token with admin role and customer_id
@@ -103,6 +100,12 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       } catch (apiError) {
+        if (apiError instanceof PulsePointUnavailableError) {
+          return NextResponse.json(
+            { success: false, message: 'External authentication service unavailable' },
+            { status: 503 }
+          );
+        }
         console.error('PulsePoint API error:', apiError);
         return NextResponse.json(
           { success: false, message: 'External authentication service unavailable' },
@@ -111,13 +114,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle Agent login (Local database authentication)
+    // Handle Agent login: PulsePoint manager email + username + local password
     if (validatedData.role === 'agent') {
-      // Find user in users table by username
-      const user = await prisma.user.findFirst({
-        where: { 
-          username: validatedData.email 
+      let customerId: number;
+      try {
+        const adminUser = await findPulsePointAdminByEmail(validatedData.email);
+        if (!adminUser) {
+          return NextResponse.json(
+            { success: false, message: 'This account is not registered.' },
+            { status: 401 }
+          );
         }
+        customerId = adminUser.id;
+      } catch (apiError) {
+        if (apiError instanceof PulsePointUnavailableError) {
+          return NextResponse.json(
+            { success: false, message: 'External authentication service unavailable' },
+            { status: 503 }
+          );
+        }
+        throw apiError;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: {
+          customer_id_username: {
+            customer_id: customerId,
+            username: validatedData.username.trim(),
+          },
+        },
       });
 
       if (!user) {
@@ -161,6 +186,7 @@ export async function POST(request: NextRequest) {
             customerId: user.customer_id,
             id: user.id,
             username: user.username,
+            email: validatedData.email,
             role: 'agent'
           },
         },

@@ -10,12 +10,13 @@ datasource db {
 model User {
   id                Int    @id @default(autoincrement())
   customer_id       Int
-  username          String @unique @db.VarChar(255)
+  username          String @db.VarChar(255)
   password          String @db.VarChar(255)
   isActive          Int
   passwordRequest   String @db.VarChar(255)
   ispasswordRequest Int
 
+  @@unique([customer_id, username], map: "users_customer_id_username_unique")
   @@map("users")
 }
 

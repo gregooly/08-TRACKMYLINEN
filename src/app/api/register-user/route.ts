@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
+import { findPulsePointAdminByEmail, PulsePointUnavailableError } from '@/lib/pulsepoint';
 import { z } from 'zod';
-import axios from 'axios';
 
 const registerSchema = z.object({
   adminEmail: z.string().email('Invalid admin email address'),
@@ -18,21 +18,8 @@ export async function POST(request: NextRequest) {
     // Step 1: Verify admin email exists in PulsePoint API
     let customerId: number;
     try {
-      const adminCheckResponse = await axios.get('https://api.pulsepoint.clinotag.com/api/user/allusers', {
-        auth: {
-          username: process.env.PULSEPOINT_API_USERNAME || '',
-          password: process.env.PULSEPOINT_API_PASSWORD || ''
-        },
-        timeout: 10000 // 10 second timeout
-      });
+      const adminUser = await findPulsePointAdminByEmail(validatedData.adminEmail);
 
-      const allUsers = adminCheckResponse.data?.data || adminCheckResponse.data || [];
-      
-      // Find admin user by email
-      const adminUser = allUsers.find((user: { email?: string; id: number }) => 
-        user.email?.toLowerCase() === validatedData.adminEmail.toLowerCase()
-      );
-      
       if (!adminUser) {
         return NextResponse.json(
           { success: false, message: 'Administrator email does not exist in PulsePoint system.' },
@@ -42,23 +29,28 @@ export async function POST(request: NextRequest) {
 
       customerId = adminUser.id;
     } catch (apiError) {
-      console.error('PulsePoint API error:', apiError);
-      return NextResponse.json(
-        { success: false, message: 'Failed to verify administrator email. PulsePoint service may be unavailable.' },
-        { status: 503 }
-      );
+      if (apiError instanceof PulsePointUnavailableError) {
+        return NextResponse.json(
+          { success: false, message: 'Failed to verify administrator email. PulsePoint service may be unavailable.' },
+          { status: 503 }
+        );
+      }
+      throw apiError;
     }
 
-    // Step 2: Check if username already exists in users table
-    const existingUser = await prisma.user.findFirst({
+    // Step 2: Username must be unique for this PulsePoint admin (customer_id)
+    const existingUser = await prisma.user.findUnique({
       where: {
-        username: validatedData.username
+        customer_id_username: {
+          customer_id: customerId,
+          username: validatedData.username.trim(),
+        },
       },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: 'Username already exists' },
+        { success: false, message: 'This username is already registered for this manager email.' },
         { status: 400 }
       );
     }
@@ -70,7 +62,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         customer_id: customerId,
-        username: validatedData.username,
+        username: validatedData.username.trim(),
         password: hashedPassword,
         isActive: 0, // Pending approval
         passwordRequest: '',

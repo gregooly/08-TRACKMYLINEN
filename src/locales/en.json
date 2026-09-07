@@ -41,7 +41,7 @@
     "createAccountTitle": "Create Your Account",
     "roleAdmin": "Admin",
     "roleAgent": "Agent",
-    "pulsepointHint": "You must sign up with a pulsepoint account.",
+    "pulsepointHint": "Use your PulsePoint manager email.",
     "managerEmail": "Manager Email",
     "username": "Username",
     "password": "Password",
