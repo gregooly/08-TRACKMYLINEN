@@ -1,53 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { assertSameTenant, requireAdmin } from '@/lib/authz';
 import { z } from 'zod';
 
 const updateStatusSchema = z.object({
-  userId: z.number(),
-  isActive: z.number().min(0).max(1),
+  userId: z.number().int().positive(),
+  isActive: z.number().int().min(0).max(1),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
+    // Admin role required. Previously ANY valid token could activate or
+    // deactivate ANY user in ANY tenant — including approving its own
+    // pending registration.
+    const auth = await requireAdmin(request);
+    if (!auth.ok) {
+      return auth.response;
     }
 
     const body = await request.json();
     const validatedData = updateStatusSchema.parse(body);
 
-    // Update user status
+    const target = await prisma.user.findUnique({
+      where: { id: validatedData.userId },
+      select: { id: true, customer_id: true },
+    });
+
+    if (!target) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const tenantError = assertSameTenant(auth.actor, target.customer_id);
+    if (tenantError) {
+      return tenantError;
+    }
+
     const updatedUser = await prisma.user.update({
       where: {
-        id: validatedData.userId,
+        id: target.id,
       },
       data: {
         isActive: validatedData.isActive,
       },
+      // Never echo the password hash back to the client.
+      select: {
+        id: true,
+        customer_id: true,
+        username: true,
+        isActive: true,
+      },
     });
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: 'User status updated successfully',
-        user: updatedUser 
+        user: updatedUser
       },
       { status: 200 }
     );

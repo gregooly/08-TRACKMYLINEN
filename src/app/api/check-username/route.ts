@@ -1,34 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { username } = body;
-
-    if (!username) {
-      return NextResponse.json(
-        { error: 'Username is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if username exists in the users table
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        username: username
-      },
-    });
-
-    return NextResponse.json(
-      { exists: !!existingUser },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Username check error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+/**
+ * Retired.
+ *
+ * This endpoint was unauthenticated and answered "does this username exist?"
+ * with a query that ignored `customer_id` entirely, so it worked as a
+ * cross-tenant username-enumeration oracle for anyone on the internet.
+ *
+ * It was also functionally wrong: usernames are unique per
+ * (customer_id, username), not globally, so a global hit did not mean the name
+ * was unavailable for the registering tenant.
+ *
+ * Nothing in this repository called it. Registration already reports a taken
+ * username through POST /api/register-user, which resolves the tenant first.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        'This endpoint has been retired. Username availability is reported by POST /api/register-user.',
+    },
+    { status: 410 }
+  );
 }

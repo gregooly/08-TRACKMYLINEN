@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { findPulsePointAdminByEmail, PulsePointUnavailableError } from '@/lib/pulsepoint';
 import { z } from 'zod';
+import { rateLimit } from '@/lib/rateLimit';
 
 const registerSchema = z.object({
   adminEmail: z.string().email('Invalid admin email address'),
@@ -12,6 +13,15 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, {
+      name: 'register-user',
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!limited.allowed) {
+      return limited.response;
+    }
+
     const body = await request.json();
     const validatedData = registerSchema.parse(body);
 

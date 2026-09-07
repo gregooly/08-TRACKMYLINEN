@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateToken } from '@/lib/auth';
 import { formatMachineNumber, normalizeMachineNumber } from '@/lib/appAuth';
 import { z } from 'zod';
+import { rateLimit } from '@/lib/rateLimit';
 
 /**
  * Android app user login
@@ -33,6 +34,17 @@ const loginSchema = z
 
 export async function POST(request: NextRequest) {
   try {
+    // Machine numbers are the only credential here; without a limit they can
+    // be enumerated offline-fast over HTTP.
+    const limited = rateLimit(request, {
+      name: 'app-login',
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!limited.allowed) {
+      return limited.response;
+    }
+
     const body = await request.json();
     const validated = loginSchema.parse(body);
 

@@ -1,47 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { assertSameTenant, requireAdmin } from '@/lib/authz';
 import { z } from 'zod';
 
 const deleteUserSchema = z.object({
-  userId: z.number(),
+  userId: z.number().int().positive(),
 });
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
+    // Admin role required. Previously ANY valid token could delete ANY user
+    // in ANY tenant by id.
+    const auth = await requireAdmin(request);
+    if (!auth.ok) {
+      return auth.response;
     }
 
     const body = await request.json();
     const validatedData = deleteUserSchema.parse(body);
 
-    // Delete user
+    if (validatedData.userId === auth.actor.userId) {
+      return NextResponse.json(
+        { success: false, message: 'You cannot delete your own account.' },
+        { status: 400 }
+      );
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: validatedData.userId },
+      select: { id: true, customer_id: true },
+    });
+
+    if (!target) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const tenantError = assertSameTenant(auth.actor, target.customer_id);
+    if (tenantError) {
+      return tenantError;
+    }
+
     await prisma.user.delete({
       where: {
-        id: validatedData.userId,
+        id: target.id,
       },
     });
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: 'User deleted successfully'
       },
       { status: 200 }

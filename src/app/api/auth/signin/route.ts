@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, generateToken } from '@/lib/auth';
-import { findPulsePointAdminByEmail, PulsePointUnavailableError } from '@/lib/pulsepoint';
+import { findPulsePointAdminByEmail, PulsePointUnavailableError, logUpstreamError } from '@/lib/pulsepoint';
 import { z } from 'zod';
 import axios from 'axios';
+import { rateLimit } from '@/lib/rateLimit';
 
 const signinSchema = z.discriminatedUnion('role', [
   z.object({
@@ -34,6 +35,17 @@ const API_TIMEOUT = 10000;
 
 export async function POST(request: NextRequest) {
   try {
+    // Throttle credential stuffing against both the local agent passwords and
+    // the upstream PulsePoint admin login.
+    const limited = rateLimit(request, {
+      name: 'signin',
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!limited.allowed) {
+      return limited.response;
+    }
+
     const body = await request.json();
     const validatedData = signinSchema.parse(body);
 
@@ -106,7 +118,9 @@ export async function POST(request: NextRequest) {
             { status: 503 }
           );
         }
-        console.error('PulsePoint API error:', apiError);
+        // The axios error object embeds the outbound request body, which on this
+        // path contains the user's plaintext password. Log only shape, never it.
+        logUpstreamError('PulsePoint signin error', apiError);
         return NextResponse.json(
           { success: false, message: 'External authentication service unavailable' },
           { status: 503 }

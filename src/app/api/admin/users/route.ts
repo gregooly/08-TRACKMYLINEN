@@ -1,48 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { requireAdmin } from '@/lib/authz';
+
+const MAX_PAGE_SIZE = 200;
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Admin role required, and results are scoped to the caller's tenant.
+    // Previously ANY valid token listed every user of every customer.
+    const auth = await requireAdmin(request);
+    if (!auth.ok) {
+      return auth.response;
     }
 
-    // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, parseInt(searchParams.get('pageSize') || '100', 10) || 100)
+    );
 
-    // Fetch all users from the database
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        customer_id: true,
-        username: true,
-        isActive: true,
-        passwordRequest: true,
-        ispasswordRequest: true,
-      },
-      orderBy: {
-        id: 'desc',
-      },
-    });
+    const where = { customer_id: auth.actor.customerId };
+
+    const [totalCount, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          customer_id: true,
+          username: true,
+          isActive: true,
+          passwordRequest: true,
+          ispasswordRequest: true,
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
     return NextResponse.json(
-      { 
-        success: true, 
-        users 
+      {
+        success: true,
+        users,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages: Math.ceil(totalCount / pageSize),
+        },
       },
       { status: 200 }
     );

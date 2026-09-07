@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local env helper (contained live SMTP + API credentials)
+SETupenv
+
+# production database dumps
+*.sql
+!prisma/migrations/*.sql

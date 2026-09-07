@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
-import { randomBytes } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 // GET - Fetch API key for customer
 export async function GET(request: NextRequest) {
@@ -52,8 +52,11 @@ export async function POST(request: NextRequest) {
 
     const customerId = decoded.customer_id;
 
-    // Generate a new API key
-    const newApiKey = `c4fcc7a0-${randomBytes(4).toString('hex')}-${randomBytes(2).toString('hex')}-${randomBytes(2).toString('hex')}-${randomBytes(6).toString('hex')}`;
+    // Generate a new API key.
+    // The old format hardcoded a fixed "c4fcc7a0-" first group, so every key
+    // ever issued shared a known prefix and only the remaining 14 bytes were
+    // random. randomUUID() is a full CSPRNG-backed v4 UUID of the same shape.
+    const newApiKey = randomUUID();
     const createdAt = new Date().toISOString();
 
     // Check if API key already exists

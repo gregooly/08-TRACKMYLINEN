@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+// Bound the upload: `file.text()` materialises the whole body as a JS string,
+// so an unbounded CSV was a one-request out-of-memory kill for the server.
+const MAX_CSV_BYTES = 5 * 1024 * 1024;
+const MAX_CSV_ROWS = 20_000;
+
 interface CSVRow {
   category: string;
   item_name: string;
@@ -39,12 +44,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File must be a CSV' }, { status: 400 });
     }
 
+    if (file.size > MAX_CSV_BYTES) {
+      return NextResponse.json(
+        { error: `CSV file is too large (max ${MAX_CSV_BYTES / 1024 / 1024}MB)` },
+        { status: 413 }
+      );
+    }
+
     // Read file content
     const fileContent = await file.text();
     const lines = fileContent.split('\n').map(line => line.trim()).filter(line => line);
 
     if (lines.length < 2) {
       return NextResponse.json({ error: 'CSV file is empty or contains only headers' }, { status: 400 });
+    }
+
+    if (lines.length - 1 > MAX_CSV_ROWS) {
+      return NextResponse.json(
+        { error: `CSV has too many rows (max ${MAX_CSV_ROWS})` },
+        { status: 413 }
+      );
     }
 
     // Parse CSV header
