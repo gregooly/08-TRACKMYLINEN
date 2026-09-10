@@ -112,18 +112,49 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       } catch (apiError) {
+        // This catch wraps the whole admin flow, including generateToken().
+        // It used to report EVERY failure in here as "External authentication
+        // service unavailable", so a purely local misconfiguration (missing
+        // JWT_SECRET, missing PulsePoint credentials) looked identical to the
+        // upstream being down and was undiagnosable from the browser.
         if (apiError instanceof PulsePointUnavailableError) {
           return NextResponse.json(
-            { success: false, message: 'External authentication service unavailable' },
+            {
+              success: false,
+              code: 'UPSTREAM_UNAVAILABLE',
+              message: 'External authentication service unavailable',
+            },
             { status: 503 }
           );
         }
-        // The axios error object embeds the outbound request body, which on this
-        // path contains the user's plaintext password. Log only shape, never it.
-        logUpstreamError('PulsePoint signin error', apiError);
+
+        if (axios.isAxiosError(apiError)) {
+          // The axios error object embeds the outbound request body, which on
+          // this path contains the user's plaintext password. Log shape only.
+          logUpstreamError('PulsePoint signin error', apiError);
+          return NextResponse.json(
+            {
+              success: false,
+              code: 'UPSTREAM_UNREACHABLE',
+              message: 'External authentication service unavailable',
+            },
+            { status: 503 }
+          );
+        }
+
+        // Anything else is our own fault, not the provider's. Say so.
+        console.error(
+          'Admin signin failed for a local reason (check server env config):',
+          apiError instanceof Error ? apiError.message : 'unknown error'
+        );
         return NextResponse.json(
-          { success: false, message: 'External authentication service unavailable' },
-          { status: 503 }
+          {
+            success: false,
+            code: 'SERVER_MISCONFIGURED',
+            message:
+              'Server configuration error. Check the server logs and environment variables.',
+          },
+          { status: 500 }
         );
       }
     }
