@@ -102,6 +102,10 @@ export default function ApiKeyPage() {
     window.open(url, '_blank');
   };
 
+  const viewPassageJson = () => {
+    window.open(getPassageUrl(), '_blank');
+  };
+
   const downloadCsv = async () => {
     try {
       setError('');
@@ -167,7 +171,7 @@ export default function ApiKeyPage() {
         const jsonData = await response.json();
 
         if (jsonData.data && jsonData.data.length > 0) {
-          const headers = 'item_tag,item_name,category,location,passages,status\n';
+          const headers = 'item_tag,item_name,category,location,total number of passages in the location,status\n';
           const rows = jsonData.data.map((item: {
             item_tag?: string;
             item_name?: string;
@@ -283,8 +287,14 @@ export default function ApiKeyPage() {
 
           {/* Passage report */}
           <div className="mb-4 sm:mb-6">
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Passage report
+            </label>
+            <p className="text-xs text-gray-600 mb-2">
+              How many times each item passed through each location
+            </p>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Passage report API URL
             </label>
             <div className="flex flex-col sm:flex-row gap-2 mb-2">
               <input
@@ -300,22 +310,6 @@ export default function ApiKeyPage() {
               >
                 {copiedPassageUrl ? '✓ Copied' : 'Copy'}
               </button>
-            </div>
-            <button
-              onClick={downloadPassageCsv}
-              disabled={!apiKey || loading}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Download CSV</span>
-            </button>
-            <p className="text-xs text-gray-600 mt-3 mb-1">Displaying history of locations:</p>
-            <div className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
-              <code className="text-xs text-gray-800 whitespace-nowrap block">
-                item_tag,item_name,category,location,passages,status
-              </code>
             </div>
           </div>
 
@@ -373,7 +367,7 @@ export default function ApiKeyPage() {
           </div>
 
           {/* CSV Structure Info */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
             <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-1 sm:mb-2">CSV Structure</h4>
             <p className="text-xs text-gray-600 mb-2">
               The CSV file will contain all subscription fields with resolved names:
@@ -381,6 +375,50 @@ export default function ApiKeyPage() {
             <div className="bg-yellow-100 border border-yellow-300 rounded p-2 overflow-x-auto">
               <code className="text-xs text-gray-800 whitespace-nowrap block">
                 Item Name,Tag,Category,Location,Status
+              </code>
+            </div>
+          </div>
+
+          {/* Export passage report to CSV */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+            <h4 className="text-sm sm:text-base font-semibold text-gray-800 mb-1 sm:mb-2">Export passage report to CSV</h4>
+            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+              CSV can be opened in Excel. One row per item and location.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={viewPassageJson}
+                disabled={!apiKey || loading}
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span>View JSON</span>
+              </button>
+              <button
+                onClick={downloadPassageCsv}
+                disabled={!apiKey || loading}
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Download CSV</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Passage CSV Structure */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-1 sm:mb-2">Passage CSV structure</h4>
+            <p className="text-xs text-gray-600 mb-2">
+              Displaying history of locations
+            </p>
+            <div className="bg-yellow-100 border border-yellow-300 rounded p-2 overflow-x-auto">
+              <code className="text-xs text-gray-800 whitespace-nowrap block">
+                item_tag,item_name,category,location,total number of passages in the location,status
               </code>
             </div>
           </div>
