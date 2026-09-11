@@ -10,6 +10,7 @@ export default function ApiKeyPage() {
   const [generating, setGenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedPassageUrl, setCopiedPassageUrl] = useState(false);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [error, setError] = useState<string>('');
 
@@ -67,11 +68,14 @@ export default function ApiKeyPage() {
     }
   };
 
-  const copyToClipboard = (text: string, type: 'key' | 'url') => {
+  const copyToClipboard = (text: string, type: 'key' | 'url' | 'passageUrl') => {
     navigator.clipboard.writeText(text);
     if (type === 'key') {
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2000);
+    } else if (type === 'passageUrl') {
+      setCopiedPassageUrl(true);
+      setTimeout(() => setCopiedPassageUrl(false), 2000);
     } else {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
@@ -81,6 +85,16 @@ export default function ApiKeyPage() {
   const getCompleteUrl = () => {
     const baseUrl = window.location.origin
     return `${baseUrl}/api/trackmylinen?customer_id=${customerId || 'YOUR_CUSTOMER_ID'}&apikey=${apiKey || 'YOUR_API_KEY'}`;
+  };
+
+  const getPassageUrl = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/api/trackmylinen/passages?customer_id=${customerId || 'YOUR_CUSTOMER_ID'}&apikey=${apiKey || 'YOUR_API_KEY'}`;
+  };
+
+  const escapeCsvValue = (value: string | number) => {
+    const text = String(value ?? '');
+    return `"${text.replace(/"/g, '""')}"`;
   };
 
   const viewJson = () => {
@@ -140,6 +154,61 @@ export default function ApiKeyPage() {
     } catch (error) {
       console.error('Error downloading CSV:', error);
       setError('Failed to download CSV. Please check the console for details.');
+    }
+  };
+
+  const downloadPassageCsv = async () => {
+    try {
+      setError('');
+      const url = getPassageUrl();
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const jsonData = await response.json();
+
+        if (jsonData.data && jsonData.data.length > 0) {
+          const headers = 'item_tag,item_name,category,location,passages,status\n';
+          const rows = jsonData.data.map((item: {
+            item_tag?: string;
+            item_name?: string;
+            category?: string;
+            location?: string;
+            passages?: number;
+            status?: string;
+          }) =>
+            [
+              escapeCsvValue(item.item_tag || ''),
+              escapeCsvValue(item.item_name || ''),
+              escapeCsvValue(item.category || ''),
+              escapeCsvValue(item.location || ''),
+              escapeCsvValue(item.passages ?? 0),
+              escapeCsvValue(item.status || ''),
+            ].join(',')
+          ).join('\n');
+          const csv = headers + rows;
+
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `passage_export_${new Date().toISOString().split('T')[0]}.csv`;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+          }, 100);
+        } else {
+          setError('No passage data available to export');
+        }
+      } else {
+        setError(`Failed to fetch passage data: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error downloading passage CSV:', error);
+      setError('Failed to download passage CSV. Please check the console for details.');
     }
   };
 
@@ -209,6 +278,44 @@ export default function ApiKeyPage() {
               >
                 {copiedUrl ? '✓ Copied' : 'Copy'}
               </button>
+            </div>
+          </div>
+
+          {/* Passage report */}
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Passage report
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2 mb-2">
+              <input
+                type="text"
+                value={loading ? 'Loading...' : getPassageUrl()}
+                readOnly
+                className="w-full sm:flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-700 break-all overflow-x-auto"
+              />
+              <button
+                onClick={() => apiKey && copyToClipboard(getPassageUrl(), 'passageUrl')}
+                disabled={!apiKey}
+                className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white text-xs sm:text-sm rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors sm:min-w-[80px]"
+              >
+                {copiedPassageUrl ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+            <button
+              onClick={downloadPassageCsv}
+              disabled={!apiKey || loading}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Download CSV</span>
+            </button>
+            <p className="text-xs text-gray-600 mt-3 mb-1">Displaying history of locations:</p>
+            <div className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
+              <code className="text-xs text-gray-800 whitespace-nowrap block">
+                item_tag,item_name,category,location,passages,status
+              </code>
             </div>
           </div>
 
