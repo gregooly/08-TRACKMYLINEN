@@ -13,6 +13,7 @@ export default function ApiKeyPage() {
   const [copiedPassageUrl, setCopiedPassageUrl] = useState(false);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [error, setError] = useState<string>('');
+  const [notice, setNotice] = useState<string>('');
 
   useEffect(() => {
     fetchApiKey();
@@ -47,6 +48,7 @@ export default function ApiKeyPage() {
   const generateApiKey = async () => {
     setGenerating(true);
     setError('');
+    setNotice('');
     try {
       const response = await fetch('/api/apikey', {
         method: 'POST',
@@ -92,9 +94,32 @@ export default function ApiKeyPage() {
     return `${baseUrl}/api/trackmylinen/passages?customer_id=${customerId || 'YOUR_CUSTOMER_ID'}&apikey=${apiKey || 'YOUR_API_KEY'}`;
   };
 
+  // Excel and LibreOffice execute a cell whose text begins with = + - @, so an
+  // item name or tag carrying one would run as a formula on whichever machine
+  // opens the export. A leading tab neutralises it and stays readable.
   const escapeCsvValue = (value: string | number) => {
     const text = String(value ?? '');
-    return `"${text.replace(/"/g, '""')}"`;
+    const guarded = /^[=+\-@\t\r]/.test(text) ? `\t${text}` : text;
+    return `"${guarded.replace(/"/g, '""')}"`;
+  };
+
+  // Excel decodes a CSV with the system codepage unless the file opens with a
+  // UTF-8 BOM, which turned every accented character in the French data set
+  // into mojibake.
+  const downloadCsvFile = (csv: string, filename: string) => {
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    }, 100);
   };
 
   const viewJson = () => {
@@ -105,52 +130,52 @@ export default function ApiKeyPage() {
   const downloadCsv = async () => {
     try {
       setError('');
-      const url = getCompleteUrl();
-      console.log('Fetching CSV data from:', url);
-      
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
-      
-      if (response.ok) {
-        const jsonData = await response.json();
-        console.log('JSON data received:', jsonData);
-        
-        // Convert JSON to CSV
-        if (jsonData.data && jsonData.data.length > 0) {
-          const headers = 'Item Name,Tag,Category,Location,Status\n';
-          const rows = jsonData.data.map((item: any) => 
-            `"${item.item_name || ''}","${item.tag || ''}","${item.category || ''}","${item.location || ''}","${item.status || ''}"`
-          ).join('\n');
-          const csv = headers + rows;
-          
-          console.log('CSV created, first 200 chars:', csv.substring(0, 200));
-          
-          // Create blob and download
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          
-          // Cleanup
-          setTimeout(() => {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-          }, 100);
-          
-          console.log('CSV download initiated');
-        } else {
-          console.error('No data in response:', jsonData);
-          setError('No inventory data available to export');
-        }
-      } else {
+      setNotice('');
+      const response = await fetch(getCompleteUrl());
+
+      if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response not OK:', errorText);
+        console.error('Inventory export failed:', response.status, errorText);
         setError(`Failed to fetch data: ${response.status} ${response.statusText}`);
+        return;
       }
+
+      const jsonData = await response.json();
+
+      // An empty result is a normal state, not a failure: this account simply
+      // has nothing to export yet. Reporting it as an error made a working
+      // export look broken.
+      if (!jsonData.data || jsonData.data.length === 0) {
+        setNotice(
+          'This account has no inventory records yet, so there is nothing to export. ' +
+            'Add inventory first, or sign in with the account that owns the data.'
+        );
+        return;
+      }
+
+      const headers = 'Item Name,Tag,Category,Location,Status\n';
+      const rows = jsonData.data
+        .map((item: {
+          item_name?: string;
+          tag?: string;
+          category?: string;
+          location?: string;
+          status?: string;
+        }) =>
+          [
+            escapeCsvValue(item.item_name || ''),
+            escapeCsvValue(item.tag || ''),
+            escapeCsvValue(item.category || ''),
+            escapeCsvValue(item.location || ''),
+            escapeCsvValue(item.status || ''),
+          ].join(',')
+        )
+        .join('\n');
+
+      downloadCsvFile(
+        headers + rows,
+        `inventory_export_${new Date().toISOString().split('T')[0]}.csv`
+      );
     } catch (error) {
       console.error('Error downloading CSV:', error);
       setError('Failed to download CSV. Please check the console for details.');
@@ -160,52 +185,51 @@ export default function ApiKeyPage() {
   const downloadPassageCsv = async () => {
     try {
       setError('');
-      const url = getPassageUrl();
-      const response = await fetch(url);
+      setNotice('');
+      const response = await fetch(getPassageUrl());
 
-      if (response.ok) {
-        const jsonData = await response.json();
-
-        if (jsonData.data && jsonData.data.length > 0) {
-          const headers = 'item_tag,item_name,category,location,passages,status\n';
-          const rows = jsonData.data.map((item: {
-            item_tag?: string;
-            item_name?: string;
-            category?: string;
-            location?: string;
-            passages?: number;
-            status?: string;
-          }) =>
-            [
-              escapeCsvValue(item.item_tag || ''),
-              escapeCsvValue(item.item_name || ''),
-              escapeCsvValue(item.category || ''),
-              escapeCsvValue(item.location || ''),
-              escapeCsvValue(item.passages ?? 0),
-              escapeCsvValue(item.status || ''),
-            ].join(',')
-          ).join('\n');
-          const csv = headers + rows;
-
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.download = `passage_export_${new Date().toISOString().split('T')[0]}.csv`;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-
-          setTimeout(() => {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-          }, 100);
-        } else {
-          setError('No passage data available to export');
-        }
-      } else {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Passage export failed:', response.status, errorText);
         setError(`Failed to fetch passage data: ${response.status} ${response.statusText}`);
+        return;
       }
+
+      const jsonData = await response.json();
+
+      if (!jsonData.data || jsonData.data.length === 0) {
+        setNotice(
+          'This account has no passage history yet, so there is nothing to export. ' +
+            'Passages are recorded once items are checked in at a location.'
+        );
+        return;
+      }
+
+      const headers = 'item_tag,item_name,category,location,passages,status\n';
+      const rows = jsonData.data
+        .map((item: {
+          item_tag?: string;
+          item_name?: string;
+          category?: string;
+          location?: string;
+          passages?: number;
+          status?: string;
+        }) =>
+          [
+            escapeCsvValue(item.item_tag || ''),
+            escapeCsvValue(item.item_name || ''),
+            escapeCsvValue(item.category || ''),
+            escapeCsvValue(item.location || ''),
+            escapeCsvValue(item.passages ?? 0),
+            escapeCsvValue(item.status || ''),
+          ].join(',')
+        )
+        .join('\n');
+
+      downloadCsvFile(
+        headers + rows,
+        `passage_export_${new Date().toISOString().split('T')[0]}.csv`
+      );
     } catch (error) {
       console.error('Error downloading passage CSV:', error);
       setError('Failed to download passage CSV. Please check the console for details.');
@@ -227,7 +251,19 @@ export default function ApiKeyPage() {
           </div>
         </div>
       )}
-      
+
+      {/* Informational Message — an empty export is not a failure */}
+      {notice && (
+        <div className="mb-3 sm:mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start sm:items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs sm:text-sm text-blue-800 break-words">{notice}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Generate API Key Section */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
@@ -311,12 +347,6 @@ export default function ApiKeyPage() {
               </svg>
               <span>Download CSV</span>
             </button>
-            <p className="text-xs text-gray-600 mt-3 mb-1">Displaying history of locations:</p>
-            <div className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
-              <code className="text-xs text-gray-800 whitespace-nowrap block">
-                item_tag,item_name,category,location,passages,status
-              </code>
-            </div>
           </div>
 
           {/* Generate Button */}
